@@ -115,6 +115,17 @@ static int new_lua(lua_State *L)
     return 1;
 }
 
+static int toerror_lua(lua_State *L)
+{
+    // return passed error object
+    if (lauxh_isuserdataof(L, 1, ERROR_MT)) {
+        return 1;
+    }
+
+    // create new error
+    return new_lua(L);
+}
+
 static int unwrap_lua(lua_State *L)
 {
     error_t *err = luaL_checkudata(L, 1, ERROR_MT);
@@ -232,11 +243,12 @@ LUALIB_API int luaopen_error(lua_State *L)
         {NULL,         NULL        }
     };
     struct luaL_Reg funcs[] = {
-        {"is",     is_lua    },
-        {"cause",  cause_lua },
-        {"unwrap", unwrap_lua},
-        {"new",    new_lua   },
-        {NULL,     NULL      }
+        {"is",      is_lua     },
+        {"cause",   cause_lua  },
+        {"unwrap",  unwrap_lua },
+        {"toerror", toerror_lua},
+        {"new",     new_lua    },
+        {NULL,      NULL       }
     };
 
     // create metatable
