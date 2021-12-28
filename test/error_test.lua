@@ -250,3 +250,12 @@ function testcase.is()
     end
 end
 
+function testcase.toerror()
+    -- test that create new error with string
+    local err = error.toerror('hello error')
+    assert.match(tostring(err), 'error_test%.lua.+ hello error', false)
+
+    -- test that return passed error
+    assert.rawequal(error.toerror(err), err)
+end
+
