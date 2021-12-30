@@ -16,18 +16,18 @@ dependencies = {
 build = {
     type = 'make',
     build_variables = {
-        PACKAGE         = "error",
+        PACKAGE         = 'error',
         LIB_EXTENSION   = '$(LIB_EXTENSION)',
-        SRCDIR          = "src",
+        SRCDIR          = 'src',
         CFLAGS          = '$(CFLAGS)',
         WARNINGS        = '-Wall -Wno-trigraphs -Wmissing-field-initializers -Wreturn-type -Wmissing-braces -Wparentheses -Wno-switch -Wunused-function -Wunused-label -Wunused-parameter -Wunused-variable -Wunused-value -Wuninitialized -Wunknown-pragmas -Wshadow -Wsign-compare',
         CPPFLAGS        = '-I$(LUA_INCDIR) -Ideps/lauxhlib',
         LDFLAGS         = '$(LIBFLAG)',
     },
     install_variables = {
-        PACKAGE         = "error",
+        PACKAGE         = 'error',
         LIB_EXTENSION   = '$(LIB_EXTENSION)',
-        SRCDIR          = "src",
+        SRCDIR          = 'src',
         LIBDIR          = '$(LIBDIR)',
         LUA_INCDIR      = '$(LUA_INCDIR)',
     }
