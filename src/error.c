@@ -119,6 +119,7 @@ static int toerror_lua(lua_State *L)
 {
     // return passed error object
     if (lauxh_isuserdataof(L, 1, ERROR_MT)) {
+        lua_settop(L, 1);
         return 1;
     }
 
