@@ -305,7 +305,7 @@ static int file_lua(lua_State *L)
     return 0;
 }
 
-LUALIB_API int luaopen_error_check(lua_State *L)
+LUALIB_API int le_open_error_check(lua_State *L)
 {
     struct luaL_Reg funcs[] = {
         {"file",      file_lua     },

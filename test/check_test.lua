@@ -1,6 +1,6 @@
 local assert = require('assertex')
 local testcase = require('testcase')
-local error_check = require('error.check')
+local error_check = require('error').check
 
 function testcase.check()
     for fn, v in pairs({
