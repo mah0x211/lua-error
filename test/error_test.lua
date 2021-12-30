@@ -256,6 +256,6 @@ function testcase.toerror()
     assert.match(tostring(err), 'error_test%.lua.+ hello error', false)
 
     -- test that return passed error
-    assert.rawequal(error.toerror(err), err)
+    assert.rawequal(error.toerror(err, 'foo'), err)
 end
 

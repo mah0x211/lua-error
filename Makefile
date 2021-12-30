@@ -1,22 +1,20 @@
-TARGET:=%.$(LIB_EXTENSION)
-PKG_LIBDIR:=$(INST_LIBDIR)/error
-ERROR_MOD:=error.$(LIB_EXTENSION)
-ERROR_TYPE_MOD:=type.$(LIB_EXTENSION)
-ERROR_CHECK_MOD:=check.$(LIB_EXTENSION)
+TARGET=$(PACKAGE).$(LIB_EXTENSION)
+VARS=$(wildcard $(VARDIR)/*.txt)
+SRCS=$(wildcard $(SRCDIR)/*.c)
+OBJS=$(SRCS:.c=.o)
 INSTALL?=install
 
-all: $(ERROR_MOD) $(ERROR_TYPE_MOD) $(ERROR_CHECK_MOD)
+.PHONY: all install
+
+all:  $(TARGET)
 
 %.o: %.c
 	$(CC) $(CFLAGS) $(WARNINGS) $(CPPFLAGS) -o $@ -c $<
 
-$(TARGET): src/%.o
+$(TARGET): $(OBJS)
 	$(CC) -o $@ $^ $(LDFLAGS) $(LIBS) $(PLATFORM_LDFLAGS)
 
 install:
-	$(INSTALL) $(ERROR_MOD) $(INST_LIBDIR)
-	$(INSTALL) -d $(PKG_LIBDIR)
-	$(INSTALL) $(ERROR_TYPE_MOD) $(PKG_LIBDIR)
-	$(INSTALL) $(ERROR_CHECK_MOD) $(PKG_LIBDIR)
+	$(INSTALL) $(TARGET) $(LIBDIR)
 	$(INSTALL) src/lua_error.h $(LUA_INCDIR)
 	rm -f ./*.so

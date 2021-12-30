@@ -1,8 +1,8 @@
 local unpack = unpack or table.unpack
 local assert = require('assertex')
 local testcase = require('testcase')
-local error_type = require('error.type')
 local error = require('error')
+local error_type = error.type
 
 function testcase.new()
     -- test that create new error type

@@ -25,44 +25,12 @@
 
 static int new_lua(lua_State *L)
 {
-    int level     = 1;
-    int traceback = 0;
-
-    luaL_checkudata(L, 1, ERROR_TYPE_MT);
-
-    // t:new(msg [, wrap [, level [, traceback]]])
-    switch (lua_gettop(L)) {
-    case 1:
-    case 2:
-        break;
-
-    default:
-    case 5:
-        traceback = lauxh_optboolean(L, 5, traceback);
-    case 4:
-        level = (int)lauxh_optuint8(L, 4, level);
-        lua_settop(L, 3);
-    case 3:
-        if (!lua_isnil(L, 3)) {
-            error_t *err = NULL;
-            luaL_checkudata(L, 3, ERROR_MT);
-            err           = new_error(L, 2, level, traceback);
-            err->ref_wrap = lauxh_refat(L, 3);
-            err->ref_type = lauxh_refat(L, 1);
-            return 1;
-        }
-        // passthrough
-        lua_settop(L, 2);
-    }
-
-    (new_error(L, 2, level, traceback))->ref_type = lauxh_refat(L, 1);
-
-    return 1;
+    return le_new_type_error(L, 1);
 }
 
 static int name_lua(lua_State *L)
 {
-    error_type_t *errt = luaL_checkudata(L, 1, ERROR_TYPE_MT);
+    le_error_type_t *errt = luaL_checkudata(L, 1, LE_ERROR_TYPE_MT);
 
     lua_settop(L, 1);
     lauxh_pushref(L, errt->ref_name);
@@ -72,7 +40,7 @@ static int name_lua(lua_State *L)
 
 static int tostring_lua(lua_State *L)
 {
-    error_type_t *errt = luaL_checkudata(L, 1, ERROR_TYPE_MT);
+    le_error_type_t *errt = luaL_checkudata(L, 1, LE_ERROR_TYPE_MT);
 
     lua_settop(L, 1);
     lauxh_pushref(L, errt->ref_name);
@@ -84,7 +52,7 @@ static int tostring_lua(lua_State *L)
 
 static int gc_lua(lua_State *L)
 {
-    error_type_t *errt = lua_touserdata(L, 1);
+    le_error_type_t *errt = lua_touserdata(L, 1);
 
     errt->ref_name = lauxh_unref(L, errt->ref_name);
 
@@ -93,11 +61,10 @@ static int gc_lua(lua_State *L)
 
 static int new_type_lua(lua_State *L)
 {
-    new_error_type(L, 1);
-    return 1;
+    return le_new_error_type(L, 1);
 }
 
-LUALIB_API int luaopen_error_type(lua_State *L)
+LUALIB_API int le_open_error_type(lua_State *L)
 {
     struct luaL_Reg mmethod[] = {
         {"__gc",       gc_lua      },
@@ -111,7 +78,7 @@ LUALIB_API int luaopen_error_type(lua_State *L)
     };
 
     // create metatable
-    luaL_newmetatable(L, ERROR_TYPE_MT);
+    luaL_newmetatable(L, LE_ERROR_TYPE_MT);
     // lock metatable
     lauxh_pushnum2tbl(L, "__metatable", -1);
     // metamethods

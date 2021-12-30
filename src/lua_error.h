@@ -29,64 +29,36 @@
 #include <string.h>
 #include <unistd.h>
 
-#define ERROR_MT      "error"
-#define ERROR_TYPE_MT "error.type"
+#define LE_ERROR_MT      "error"
+#define LE_ERROR_TYPE_MT "error.type"
 
 typedef struct {
     int ref_name;
-} error_type_t;
+} le_error_type_t;
 
 typedef struct {
     // runtime error
-    int ref;
+    int ref_msg;
     int ref_tostring;
     int ref_where;
     int ref_traceback;
     int ref_wrap;
     // error_type_t
     int ref_type;
-} error_t;
+} le_error_t;
 
-LUALIB_API int luaopen_error(lua_State *L);
-LUALIB_API int luaopen_error_type(lua_State *L);
-LUALIB_API int luaopen_error_check(lua_State *L);
-
-static inline error_type_t *new_error_type(lua_State *L, int nameidx)
+static inline void le_loadlib(lua_State *L)
 {
-    error_type_t *errt = NULL;
-    size_t len         = 0;
-    const char *name   = lauxh_checklstring(L, nameidx, &len);
-
-    if (len == 0 || len > 127) {
-        lauxh_argerror(L, nameidx,
-                       "string length between 1-127 expected, got %zu", len);
-        return NULL;
-    } else if (!isalpha(*name)) {
-        lauxh_argerror(
-            L, nameidx,
-            "first letter to be alphabetic character expected, got '%c'",
-            *name);
-        return NULL;
+    int top = lua_gettop(L);
+    luaL_getmetatable(L, LE_ERROR_MT);
+    if (lua_isnil(L, -1) &&
+        ((luaL_loadstring(L, "require('error')") || lua_pcall(L, 0, 0, 0)))) {
+        lua_error(L);
     }
-    for (size_t i = 1; i < len; i++) {
-        if (!isalnum(name[i]) && name[i] != '_' && name[i] != '.') {
-            lauxh_argerror(
-                L, nameidx,
-                "alphanumeric or '_' or '.' characters expected, got '%c'",
-                name[i]);
-            return NULL;
-        }
-    }
-
-    // create new error_type_t
-    errt           = lua_newuserdata(L, sizeof(error_type_t));
-    errt->ref_name = lauxh_refat(L, nameidx);
-    lauxh_setmetatable(L, ERROR_TYPE_MT);
-
-    return errt;
+    lua_settop(L, top);
 }
 
-static inline void get_whereis(lua_State *L, int level)
+static inline void le_where(lua_State *L, int level)
 {
     lua_Debug ar;
     luaL_Buffer b;
@@ -98,18 +70,17 @@ static inline void get_whereis(lua_State *L, int level)
     // get stackinfo
     if (lua_getstack(L, level, &ar)) {
         lua_getinfo(L, "Sln", &ar);
-        // is there a name from code?
         if (*ar.namewhat) {
+            // got the name from code
             lua_pushfstring(L, "in %s '%s'", ar.namewhat, ar.name);
-        }
-        // main
-        else if (*ar.what == 'm') {
+        } else if (*ar.what == 'm') {
+            // main
             lua_pushliteral(L, "in main chunk");
-        }
-        // not C function, use <file:line>
-        else if (*ar.what == 'C') {
+        } else if (*ar.what == 'C') {
+            // C function
             lua_pushliteral(L, "?");
         } else {
+            // lua function, use <file:line>
             lua_pushfstring(L, "in function <%s:%d>", ar.short_src,
                             ar.linedefined);
         }
@@ -120,19 +91,29 @@ static inline void get_whereis(lua_State *L, int level)
         }
         luaL_addstring(&b, ": ");
     }
-
     luaL_pushresult(&b);
 }
 
-static inline error_t *new_error(lua_State *L, int idx, int level,
-                                 int traceback)
+// create a new error that equivalent to the following code;
+//
+//  error.new(msg [, wrap [, level [, traceback]]])
+//
+static inline int le_new_error(lua_State *L, int msgidx)
 {
-    error_t *err = NULL;
+    le_loadlib(L);
+    int idx          = (msgidx < 0) ? lua_gettop(L) + msgidx + 1 : msgidx;
+    le_error_t *err  = NULL;
+    le_error_t *wrap = lauxh_optudata(L, idx + 1, LE_ERROR_MT, NULL);
+    int level        = (int)lauxh_optuint8(L, idx + 2, 1);
+    int traceback    = lauxh_optboolean(L, idx + 3, 0);
 
+    if (wrap) {
+        lua_settop(L, idx + 1);
+    }
     if (lua_isnoneornil(L, idx)) {
         goto INVALID_ARG;
     }
-    err                = lua_newuserdata(L, sizeof(error_t));
+    err                = lua_newuserdata(L, sizeof(le_error_t));
     err->ref_tostring  = LUA_NOREF;
     err->ref_traceback = LUA_NOREF;
     err->ref_wrap      = LUA_NOREF;
@@ -154,10 +135,10 @@ static inline error_t *new_error(lua_State *L, int idx, int level,
                 lua_rawget(L, -2);
             }
             if (!lua_isfunction(L, -1)) {
-                luaL_argerror(L, idx,
-                              "tostring function or __tostring metamethod "
-                              "does not exist in table");
-                return NULL;
+                return luaL_argerror(
+                    L, idx,
+                    "tostring function or __tostring metamethod "
+                    "does not exist in table");
             }
             err->ref_tostring = lauxh_ref(L);
             lua_pop(L, 1);
@@ -167,24 +148,80 @@ static inline error_t *new_error(lua_State *L, int idx, int level,
 
     default:
 INVALID_ARG:
-        lauxh_argerror(L, idx,
-                       "argument must be string or table expected, got %s",
-                       lua_typename(L, lua_type(L, idx)));
-        return NULL;
+        return lauxh_argerror(
+            L, idx, "argument must be string or table expected, got %s",
+            lua_typename(L, lua_type(L, idx)));
     }
 
-    err->ref = lauxh_refat(L, idx);
-    get_whereis(L, level);
+    err->ref_msg = lauxh_refat(L, idx);
+    // with wrap argument
+    if (wrap) {
+        err->ref_wrap = lauxh_refat(L, idx + 1);
+    }
+    le_where(L, level);
     err->ref_where = lauxh_ref(L);
     if (traceback) {
         lauxh_traceback(NULL, L, NULL, level);
         err->ref_traceback = lauxh_ref(L);
     }
-
     // create new error
-    lauxh_setmetatable(L, ERROR_MT);
+    lauxh_setmetatable(L, LE_ERROR_MT);
 
-    return err;
+    return 1;
+}
+
+// create a new error type that equivalent to the following code;
+//
+//  error.type.new(name)
+//
+static inline int le_new_error_type(lua_State *L, int nameidx)
+{
+    le_loadlib(L);
+    int idx = (nameidx < 0) ? lua_gettop(L) + nameidx + 1 : nameidx;
+    le_error_type_t *errt = NULL;
+    size_t len            = 0;
+    const char *name      = lauxh_checklstring(L, idx, &len);
+
+    if (len == 0 || len > 127) {
+        return lauxh_argerror(
+            L, idx, "string length between 1-127 expected, got %zu", len);
+    } else if (!isalpha(*name)) {
+        return lauxh_argerror(
+            L, idx,
+            "first letter to be alphabetic character expected, got '%c'",
+            *name);
+    }
+    for (size_t i = 1; i < len; i++) {
+        if (!isalnum(name[i]) && name[i] != '_' && name[i] != '.') {
+            return lauxh_argerror(
+                L, idx,
+                "alphanumeric or '_' or '.' characters expected, got '%c'",
+                name[i]);
+        }
+    }
+
+    // create new le_error_type_t
+    errt           = lua_newuserdata(L, sizeof(le_error_type_t));
+    errt->ref_name = lauxh_refat(L, idx);
+    lauxh_setmetatable(L, LE_ERROR_TYPE_MT);
+
+    return 1;
+}
+
+// create a new typed error that equivalent to the following code;
+//
+//  <myerr>:new(msg [, wrap [, level [, traceback]]])
+//
+static inline int le_new_type_error(lua_State *L, int typeidx)
+{
+    le_loadlib(L);
+    int idx = (typeidx < 0) ? lua_gettop(L) + typeidx + 1 : typeidx;
+
+    luaL_checkudata(L, idx, LE_ERROR_TYPE_MT);
+    le_new_error(L, idx + 1);
+    ((le_error_t *)lua_touserdata(L, -1))->ref_type = lauxh_refat(L, idx);
+
+    return 1;
 }
 
 #endif
