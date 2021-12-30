@@ -47,17 +47,6 @@ typedef struct {
     int ref_type;
 } le_error_t;
 
-static inline void le_loadlib(lua_State *L)
-{
-    int top = lua_gettop(L);
-    luaL_getmetatable(L, LE_ERROR_MT);
-    if (lua_isnil(L, -1) &&
-        ((luaL_loadstring(L, "require('error')") || lua_pcall(L, 0, 0, 0)))) {
-        lua_error(L);
-    }
-    lua_settop(L, top);
-}
-
 static inline void le_where(lua_State *L, int level)
 {
     lua_Debug ar;
@@ -94,18 +83,33 @@ static inline void le_where(lua_State *L, int level)
     luaL_pushresult(&b);
 }
 
+static inline void le_loadlib(lua_State *L, int level)
+{
+    int top = lua_gettop(L);
+    luaL_getmetatable(L, LE_ERROR_MT);
+    if (lua_isnil(L, -1) &&
+        ((luaL_loadstring(L, "require('error')") || lua_pcall(L, 0, 0, 0)))) {
+        le_where(L, level);
+        lua_insert(L, lua_gettop(L) - 1);
+        lua_concat(L, 2);
+        lua_error(L);
+    }
+    lua_settop(L, top);
+}
+
 // create a new error that equivalent to the following code;
 //
 //  error.new(msg [, wrap [, level [, traceback]]])
 //
 static inline int le_new_error(lua_State *L, int msgidx)
 {
-    le_loadlib(L);
     int idx          = (msgidx < 0) ? lua_gettop(L) + msgidx + 1 : msgidx;
     le_error_t *err  = NULL;
     le_error_t *wrap = lauxh_optudata(L, idx + 1, LE_ERROR_MT, NULL);
     int level        = (int)lauxh_optuint8(L, idx + 2, 1);
     int traceback    = lauxh_optboolean(L, idx + 3, 0);
+
+    le_loadlib(L, level);
 
     if (wrap) {
         lua_settop(L, idx + 1);
@@ -176,11 +180,12 @@ INVALID_ARG:
 //
 static inline int le_new_error_type(lua_State *L, int nameidx)
 {
-    le_loadlib(L);
     int idx = (nameidx < 0) ? lua_gettop(L) + nameidx + 1 : nameidx;
     le_error_type_t *errt = NULL;
     size_t len            = 0;
     const char *name      = lauxh_checklstring(L, idx, &len);
+
+    le_loadlib(L, 1);
 
     if (len == 0 || len > 127) {
         return lauxh_argerror(
@@ -214,8 +219,10 @@ static inline int le_new_error_type(lua_State *L, int nameidx)
 //
 static inline int le_new_type_error(lua_State *L, int typeidx)
 {
-    le_loadlib(L);
-    int idx = (typeidx < 0) ? lua_gettop(L) + typeidx + 1 : typeidx;
+    int idx   = (typeidx < 0) ? lua_gettop(L) + typeidx + 1 : typeidx;
+    int level = (int)lauxh_optuint8(L, idx + 3, 1);
+
+    le_loadlib(L, level);
 
     luaL_checkudata(L, idx, LE_ERROR_TYPE_MT);
     le_new_error(L, idx + 1);
