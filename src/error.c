@@ -196,6 +196,16 @@ COMPARE:
     return 1;
 }
 
+static int typeof_lua(lua_State *L)
+{
+    le_error_t *err = luaL_checkudata(L, 1, LE_ERROR_MT);
+
+    lua_settop(L, 1);
+    lauxh_pushref(L, err->ref_type);
+
+    return 1;
+}
+
 static int call_lua(lua_State *L)
 {
     int level = (int)luaL_optinteger(L, 3, 1);
@@ -221,6 +231,7 @@ LUALIB_API int luaopen_error(lua_State *L)
         {NULL,         NULL        }
     };
     struct luaL_Reg funcs[] = {
+        {"typeof",  typeof_lua },
         {"is",      is_lua     },
         {"cause",   cause_lua  },
         {"unwrap",  unwrap_lua },

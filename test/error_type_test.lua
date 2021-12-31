@@ -171,3 +171,11 @@ function testcase.is()
     assert.rawequal(error.is(err, t), err_typed_err)
 end
 
+function testcase.typeof()
+    local t = error_type.new('my.error')
+    local err = t:new('hello typed error')
+
+    -- test that return error type object associated with err
+    assert.rawequal(error.typeof(err), t)
+end
+
