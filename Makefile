@@ -17,4 +17,5 @@ $(TARGET): $(OBJS)
 install:
 	$(INSTALL) $(TARGET) $(LIBDIR)
 	$(INSTALL) src/lua_error.h $(LUA_INCDIR)
+	rm -f ./src/*.o
 	rm -f ./*.so
