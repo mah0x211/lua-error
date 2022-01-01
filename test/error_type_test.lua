@@ -4,6 +4,14 @@ local testcase = require('testcase')
 local error = require('error')
 local error_type = error.type
 
+function testcase.after_each()
+    error_type.del('my.error')
+end
+
+function testcase.after_all()
+    error_type.del('my.error')
+end
+
 function testcase.new()
     -- test that create new error type
     local t = error_type.new('my.error')
@@ -41,6 +49,27 @@ function testcase.new()
         end)
         assert.match(err, v.match, false)
     end
+end
+
+function testcase.get()
+    do
+        local t = error_type.new('my.error')
+
+        -- test that get registered error type
+        collectgarbage('collect')
+        assert.rawequal(error_type.get('my.error'), t)
+    end
+
+    -- verify that the error type objects are helds in a weak reference table
+    collectgarbage('collect')
+    assert.is_nil(error_type.get('my.error'))
+end
+
+function testcase.del()
+    local _ = error_type.new('my.error')
+    -- test that delete registered error type
+    assert.is_true(error_type.del('my.error'))
+    assert.is_false(error_type.del('my.error'))
 end
 
 function testcase.name()

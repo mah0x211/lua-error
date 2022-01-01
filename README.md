@@ -162,10 +162,15 @@ the `error` module installs `lua_error.h` in the lua include directory.
 
 the following API can be used to create an error object or error type object.
 
+### static inline void le_loadlib(lua_State *L, int level)
+
+load the lua-error module.  
+you must call this API at least once before using the following API.
+
 
 ### static inline int le_new_error(lua_State *L, int msgidx)
 
-create a new error that equivalent to `error.new` function.
+create a new error that equivalent to `error.new(message [, wrap [, level [, traceback]]])` function.
 
 
 ### static inline int le_new_error_type(lua_State *L, int nameidx)
@@ -176,6 +181,16 @@ create a new error type that equivalent to `error.type.new(name)` function.
 ### static inline int le_new_type_error(lua_State *L, int typeidx)
 
 create a new typed error that equivalent to `<myerr>:new(msg [, wrap [, level [, traceback]]])` method.
+
+
+### static inline int le_registry_get(lua_State *L, const char *name)
+
+get a error type object from registry that equivalent to `error.type.get(name)` function.
+
+
+### static inline int le_registry_del(lua_State *L, const char *name)
+
+delete a error type from registry that equivalent to `error.type.del(name)` function.
 
 
 ## Module Structure
@@ -280,7 +295,10 @@ get the error type object associated with the error object.
 
 ### errt = error.type.new(name)
 
-creates a new error type object.
+creates a new error type object.  
+the created error type object will be kept in `the registry table` that cannot be accessed directly.  
+
+**NOTE:** the registry table is set up as a weak reference table `__mode = 'v'`.
 
 **Params**
 
@@ -292,6 +310,32 @@ creates a new error type object.
 **Returns**
 
 - `errt:error.type`: error type object.
+
+
+### errt = error.type.get(name)
+
+get a error type object from the registry table.
+
+**Params**
+
+- `name:string`: name of the error type.
+
+**Returns**
+
+- `errt:error.type`: error type object.
+
+
+### ok = error.type.del(name)
+
+delete a error type from the registry table.
+
+**Params**
+
+- `name:string`: name of the error type.
+
+**Returns**
+
+- `ok:boolean`: `true` on success.
 
 
 ### name = errt:name()
