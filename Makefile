@@ -1,18 +1,22 @@
 TARGET=$(PACKAGE).$(LIB_EXTENSION)
-VARS=$(wildcard $(VARDIR)/*.txt)
+VARS=$(wildcard var/*.txt)
+TMPL=$(wildcard tmpl/*.c)
 SRCS=$(wildcard $(SRCDIR)/*.c)
 OBJS=$(SRCS:.c=.o)
 INSTALL?=install
 
-.PHONY: all install clean
+.PHONY: preprocess all install clean
 
-all:  $(TARGET)
+all: preprocess $(TARGET)
 
 %.o: %.c
 	$(CC) $(CFLAGS) $(WARNINGS) $(CPPFLAGS) -o $@ -c $<
 
 $(TARGET): $(OBJS)
 	$(CC) -o $@ $^ $(LDFLAGS) $(LIBS) $(PLATFORM_LDFLAGS)
+
+preprocess:
+	lua ./codegen.lua $(VARS) $(TMPL)
 
 install:
 	$(INSTALL) $(TARGET) $(LIBDIR)
