@@ -165,7 +165,7 @@ the following API can be used to create an error object or error type object.
 ### static inline void le_loadlib(lua_State *L, int level)
 
 load the lua-error module.  
-you must call this API at least once before using the following API.
+**NOTE:** you must call this API at least once before using the following API.
 
 
 ### static inline int le_new_error(lua_State *L, int msgidx)
@@ -204,6 +204,7 @@ local error = require('error')
 - `__call` metamethod that equivalent to Lua's built-in `error` function
 - functions of `error` module
 - `error.type` submodule
+- `error.errno` submodule
 - `error.check` submodule
 
 
@@ -355,6 +356,128 @@ equivalent to the `error.new` function, but sets the error type object to the er
 
 - `err:error`: a new error object that holds the error type object.
 
+
+## `error.errno` module
+
+this module exports the error type of the error number `errno` defined in the running system.  
+the list of error numbers is defined in [var/errno.txt](var/errno.txt).
+
+```lua
+local dump = require('dump')
+local errno = require('error').errno
+print(dump(errno))
+--
+-- the above code will be output as follows;
+--
+-- {
+--     E2BIG = "E2BIG: 0x7facfd40ce88",
+--     EACCES = "EACCES: 0x7facfd40cf28",
+--     EADDRINUSE = "EADDRINUSE: 0x7facfd40c838",
+--     EADDRNOTAVAIL = "EADDRNOTAVAIL: 0x7facfd40cec8",
+--     EAFNOSUPPORT = "EAFNOSUPPORT: 0x7facfd40d058",
+--     EAGAIN = "EAGAIN: 0x7facfd40cf98",
+--     EALREADY = "EALREADY: 0x7facfd40d2c8",
+--     EAUTH = "EAUTH: 0x7facfd40d308",
+--     EBADARCH = "EBADARCH: 0x7facfd40d378",
+--     EBADEXEC = "EBADEXEC: 0x7facfd40c438",
+--     EBADF = "EBADF: 0x7facfd40c478",
+--     EBADMACHO = "EBADMACHO: 0x7facfd40b918",
+--     EBADMSG = "EBADMSG: 0x7facfd40c4b8",
+--     EBADRPC = "EBADRPC: 0x7facfd40c518",
+--     EBUSY = "EBUSY: 0x7facfd40c578",
+--     ECANCELED = "ECANCELED: 0x7facfd40d098",
+--     ECHILD = "ECHILD: 0x7facfd40d0f8",
+--     ECONNABORTED = "ECONNABORTED: 0x7facfd40d168",
+--     ECONNREFUSED = "ECONNREFUSED: 0x7facfd40d1d8",
+--     ECONNRESET = "ECONNRESET: 0x7facfd40d248",
+--     EDEADLK = "EDEADLK: 0x7facfd40d558",
+--     EDESTADDRREQ = "EDESTADDRREQ: 0x7facfd40d5c8",
+--     EDEVERR = "EDEVERR: 0x7facfd40d628",
+--     EDOM = "EDOM: 0x7facfd40d688",
+--     EDQUOT = "EDQUOT: 0x7facfd40d6e8",
+--     EEXIST = "EEXIST: 0x7facfd40d748",
+--     EFAULT = "EFAULT: 0x7facfd40d7a8",
+--     EFBIG = "EFBIG: 0x7facfd40d808",
+--     EFTYPE = "EFTYPE: 0x7facfd40d868",
+--     EHOSTDOWN = "EHOSTDOWN: 0x7facfd40d8d8",
+--     EHOSTUNREACH = "EHOSTUNREACH: 0x7facfd40e168",
+--     EIDRM = "EIDRM: 0x7facfd40e1a8",
+--     EILSEQ = "EILSEQ: 0x7facfd40e208",
+--     EINPROGRESS = "EINPROGRESS: 0x7facfd40d968",
+--     EINTR = "EINTR: 0x7facfd40d9c8",
+--     EINVAL = "EINVAL: 0x7facfd40d3d8",
+--     EIO = "EIO: 0x7facfd40d438",
+--     EISCONN = "EISCONN: 0x7facfd40d498",
+--     EISDIR = "EISDIR: 0x7facfd40d4f8",
+--     ELAST = "ELAST: 0x7facfd40dba8",
+--     ELOOP = "ELOOP: 0x7facfd40dc08",
+--     EMFILE = "EMFILE: 0x7facfd40dc68",
+--     EMLINK = "EMLINK: 0x7facfd40dcc8",
+--     EMSGSIZE = "EMSGSIZE: 0x7facfd40dd38",
+--     EMULTIHOP = "EMULTIHOP: 0x7facfd40dda8",
+--     ENAMETOOLONG = "ENAMETOOLONG: 0x7facfd40de18",
+--     ENEEDAUTH = "ENEEDAUTH: 0x7facfd40de88",
+--     ENETDOWN = "ENETDOWN: 0x7facfd40def8",
+--     ENETRESET = "ENETRESET: 0x7facfd40df68",
+--     ENETUNREACH = "ENETUNREACH: 0x7facfd40dfd8",
+--     ENFILE = "ENFILE: 0x7facfd40e038",
+--     ENOATTR = "ENOATTR: 0x7facfd40e098",
+--     ENOBUFS = "ENOBUFS: 0x7facfd40e0f8",
+--     ENODATA = "ENODATA: 0x7facfd40e268",
+--     ENODEV = "ENODEV: 0x7facfd40e2c8",
+--     ENOENT = "ENOENT: 0x7facfd40e328",
+--     ENOEXEC = "ENOEXEC: 0x7facfd40e388",
+--     ENOLCK = "ENOLCK: 0x7facfd40e3e8",
+--     ENOLINK = "ENOLINK: 0x7facfd40e448",
+--     ENOMEM = "ENOMEM: 0x7facfd40e4a8",
+--     ENOMSG = "ENOMSG: 0x7facfd40e508",
+--     ENOPROTOOPT = "ENOPROTOOPT: 0x7facfd40e578",
+--     ENOSPC = "ENOSPC: 0x7facfd40e5d8",
+--     ENOSR = "ENOSR: 0x7facfd40e638",
+--     ENOSTR = "ENOSTR: 0x7facfd40e698",
+--     ENOSYS = "ENOSYS: 0x7facfd40e6f8",
+--     ENOTBLK = "ENOTBLK: 0x7facfd40e738",
+--     ENOTCONN = "ENOTCONN: 0x7facfd40da08",
+--     ENOTDIR = "ENOTDIR: 0x7facfd40da68",
+--     ENOTEMPTY = "ENOTEMPTY: 0x7facfd40dad8",
+--     ENOTRECOVERABLE = "ENOTRECOVERABLE: 0x7facfd40db48",
+--     ENOTSOCK = "ENOTSOCK: 0x7facfd40e928",
+--     ENOTSUP = "ENOTSUP: 0x7facfd40e988",
+--     ENOTTY = "ENOTTY: 0x7facfd40e9e8",
+--     ENXIO = "ENXIO: 0x7facfd40ea48",
+--     EOPNOTSUPP = "EOPNOTSUPP: 0x7facfd40eab8",
+--     EOVERFLOW = "EOVERFLOW: 0x7facfd40eb28",
+--     EOWNERDEAD = "EOWNERDEAD: 0x7facfd40eb98",
+--     EPERM = "EPERM: 0x7facfd40ebf8",
+--     EPFNOSUPPORT = "EPFNOSUPPORT: 0x7facfd40ec68",
+--     EPIPE = "EPIPE: 0x7facfd40ecc8",
+--     EPROCLIM = "EPROCLIM: 0x7facfd40ed38",
+--     EPROCUNAVAIL = "EPROCUNAVAIL: 0x7facfd40eda8",
+--     EPROGMISMATCH = "EPROGMISMATCH: 0x7facfd40ee18",
+--     EPROGUNAVAIL = "EPROGUNAVAIL: 0x7facfd40ee88",
+--     EPROTO = "EPROTO: 0x7facfd40eee8",
+--     EPROTONOSUPPORT = "EPROTONOSUPPORT: 0x7facfd40ef58",
+--     EPROTOTYPE = "EPROTOTYPE: 0x7facfd40efc8",
+--     EPWROFF = "EPWROFF: 0x7facfd40f028",
+--     ERANGE = "ERANGE: 0x7facfd40f088",
+--     EREMOTE = "EREMOTE: 0x7facfd40f0e8",
+--     EROFS = "EROFS: 0x7facfd40f148",
+--     ERPCMISMATCH = "ERPCMISMATCH: 0x7facfd40f1b8",
+--     ESHLIBVERS = "ESHLIBVERS: 0x7facfd40f228",
+--     ESHUTDOWN = "ESHUTDOWN: 0x7facfd40f298",
+--     ESOCKTNOSUPPORT = "ESOCKTNOSUPPORT: 0x7facfd40f308",
+--     ESPIPE = "ESPIPE: 0x7facfd40f368",
+--     ESRCH = "ESRCH: 0x7facfd40f3c8",
+--     ESTALE = "ESTALE: 0x7facfd40f428",
+--     ETIME = "ETIME: 0x7facfd40f488",
+--     ETIMEDOUT = "ETIMEDOUT: 0x7facfd40f4f8",
+--     ETOOMANYREFS = "ETOOMANYREFS: 0x7facfd40f568",
+--     ETXTBSY = "ETXTBSY: 0x7facfd40f5c8",
+--     EUSERS = "EUSERS: 0x7facfd40f628",
+--     EWOULDBLOCK = "EWOULDBLOCK: 0x7facfd40f698",
+--     EXDEV = "EXDEV: 0x7facfd40f6f8"
+-- }
+```
 
 ## `error.check` module
 
