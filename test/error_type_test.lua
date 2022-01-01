@@ -79,15 +79,23 @@ function testcase.name()
 end
 
 function testcase.new_error()
-    -- test that create new typed error
     local t = error_type.new('my.error')
-    local err = t:new({
-        tostring = function(_, where, traceback)
+
+    -- test that create new typed error with string message
+    local err = t:new('typed string error')
+    assert.match(tostring(err),
+                 'error_type_test%.lua.+ %[my.error%] typed string error', false)
+
+    -- test that create new typed error with structured message
+    err = t:new({
+        tostring = function(_, where, traceback, errt)
+            assert.equal(t, errt)
             assert.is_nil(traceback)
-            return where .. 'typed error'
+            return string.format('%s [%s] typed error', where, errt:name())
         end,
     })
-    assert.match(tostring(err), 'error_type_test%.lua.+ typed error', false)
+    assert.match(tostring(err),
+                 'error_type_test%.lua.+ %[my.error%] typed error', false)
 
     -- test that create new typed error with a stack traceback
     err = t:new({

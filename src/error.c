@@ -30,17 +30,27 @@ static void tostring(lua_State *L, le_error_t *err)
         lauxh_pushref(L, err->ref_msg);
         lauxh_pushref(L, err->ref_where);
         lauxh_pushref(L, err->ref_traceback);
-        lua_call(L, 3, 1);
+        lauxh_pushref(L, err->ref_type);
+        lua_call(L, 4, 1);
     } else {
+        int top = lua_gettop(L);
+
         lauxh_pushref(L, err->ref_where);
+        if (err->ref_type != LUA_NOREF) {
+            const char *name = NULL;
+            lauxh_pushref(L, err->ref_type);
+            lauxh_pushref(L,
+                          ((le_error_type_t *)lua_touserdata(L, -1))->ref_name);
+            name = lua_tostring(L, -1);
+            lua_pop(L, 2);
+            lua_pushfstring(L, "[%s] ", name);
+        }
         lauxh_pushref(L, err->ref_msg);
-        if (err->ref_traceback == LUA_NOREF) {
-            lua_concat(L, 2);
-        } else {
+        if (err->ref_traceback != LUA_NOREF) {
             lua_pushliteral(L, "\n");
             lauxh_pushref(L, err->ref_traceback);
-            lua_concat(L, 4);
         }
+        lua_concat(L, lua_gettop(L) - top);
     }
 
     // convert wrapped errors to string
