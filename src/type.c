@@ -64,6 +64,25 @@ static int new_type_lua(lua_State *L)
     return le_new_error_type(L, 1);
 }
 
+static int del_lua(lua_State *L)
+{
+    const char *name = lauxh_checkstring(L, 1);
+
+    lua_settop(L, 1);
+    lua_pushboolean(L, le_registry_del(L, name));
+
+    return 1;
+}
+
+static int get_lua(lua_State *L)
+{
+    const char *name = lauxh_checkstring(L, 1);
+
+    lua_settop(L, 1);
+
+    return le_registry_get(L, name);
+}
+
 LUALIB_API int le_open_error_type(lua_State *L)
 {
     struct luaL_Reg mmethod[] = {
@@ -75,6 +94,12 @@ LUALIB_API int le_open_error_type(lua_State *L)
         {"name", name_lua},
         {"new",  new_lua },
         {NULL,   NULL    }
+    };
+    struct luaL_Reg funcs[] = {
+        {"get", get_lua     },
+        {"del", del_lua     },
+        {"new", new_type_lua},
+        {NULL,  NULL        }
     };
 
     // create metatable
@@ -96,7 +121,9 @@ LUALIB_API int le_open_error_type(lua_State *L)
 
     // export funcs
     lua_newtable(L);
-    lauxh_pushfn2tbl(L, "new", new_type_lua);
+    for (struct luaL_Reg *ptr = funcs; ptr->name; ptr++) {
+        lauxh_pushfn2tbl(L, ptr->name, ptr->func);
+    }
 
     return 1;
 }

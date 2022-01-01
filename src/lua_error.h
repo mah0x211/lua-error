@@ -29,8 +29,9 @@
 #include <string.h>
 #include <unistd.h>
 
-#define LE_ERROR_MT      "error"
-#define LE_ERROR_TYPE_MT "error.type"
+#define LE_ERROR_MT          "error"
+#define LE_ERROR_REGISTRY_MT "error.registry"
+#define LE_ERROR_TYPE_MT     "error.type"
 
 typedef struct {
     int ref_name;
@@ -109,8 +110,6 @@ static inline int le_new_error(lua_State *L, int msgidx)
     int level        = (int)lauxh_optuint8(L, idx + 2, 1);
     int traceback    = lauxh_optboolean(L, idx + 3, 0);
 
-    le_loadlib(L, level);
-
     if (wrap) {
         lua_settop(L, idx + 1);
     }
@@ -174,6 +173,74 @@ INVALID_ARG:
     return 1;
 }
 
+//
+// error type registry
+//
+static inline void le_registry(lua_State *L)
+{
+    lua_getfield(L, LUA_REGISTRYINDEX, LE_ERROR_REGISTRY_MT ".REGISTRY_TABLE");
+    if (lua_isnil(L, -1)) {
+        lua_pop(L, 1);
+        // create new registry table as a weak reference table
+        lua_newtable(L);
+        luaL_newmetatable(L, LE_ERROR_REGISTRY_MT);
+        lauxh_pushstr2tbl(L, "__mode", "v");
+        lua_setmetatable(L, -2);
+        // store it into LUA_REGISTRYINDEX
+        lua_pushvalue(L, -1);
+        lua_setfield(L, LUA_REGISTRYINDEX,
+                     LE_ERROR_REGISTRY_MT ".REGISTRY_TABLE");
+    }
+}
+
+// delete a error type from registry that equivalent to the following code;
+//
+//  error.type.del(name)
+//
+static inline int le_registry_del(lua_State *L, const char *name)
+{
+    int rc = 0;
+
+    le_registry(L);
+    lua_getfield(L, -1, name);
+    // not nil
+    rc = !lua_isnil(L, -1);
+    if (rc) {
+        lua_pop(L, 1);
+        lua_pushnil(L);
+        lua_setfield(L, -2, name);
+    }
+    lua_pop(L, 1);
+
+    return rc;
+}
+
+// get a error type object from registry that equivalent to the following code;
+//
+//  error.type.get(name)
+//
+static inline int le_registry_get(lua_State *L, const char *name)
+{
+    le_registry(L);
+    lua_getfield(L, -1, name);
+    if (lua_isnil(L, -1)) {
+        lua_pop(L, 2);
+        return 0;
+    } else if (!lauxh_ismetatableof(L, -1, LE_ERROR_TYPE_MT)) {
+        lua_pushfstring(L,
+                        "the error type registry is corrupted: "
+                        "the registered error type '%s'"
+                        "is not type of " LE_ERROR_TYPE_MT,
+                        name);
+        return lua_error(L);
+    }
+
+    // remove registry table
+    lua_replace(L, -2);
+
+    return 1;
+}
+
 // create a new error type that equivalent to the following code;
 //
 //  error.type.new(name)
@@ -185,8 +252,7 @@ static inline int le_new_error_type(lua_State *L, int nameidx)
     size_t len            = 0;
     const char *name      = lauxh_checklstring(L, idx, &len);
 
-    le_loadlib(L, 1);
-
+    // verify type name
     if (len == 0 || len > 127) {
         return lauxh_argerror(
             L, idx, "string length between 1-127 expected, got %zu", len);
@@ -205,10 +271,20 @@ static inline int le_new_error_type(lua_State *L, int nameidx)
         }
     }
 
+    if (le_registry_get(L, name)) {
+        // name already used in other error type
+        return lauxh_argerror(L, idx, "already used in other error type");
+    }
+
     // create new le_error_type_t
     errt           = lua_newuserdata(L, sizeof(le_error_type_t));
     errt->ref_name = lauxh_refat(L, idx);
     lauxh_setmetatable(L, LE_ERROR_TYPE_MT);
+    // register
+    le_registry(L);
+    lua_pushvalue(L, -2);
+    lua_setfield(L, -2, name);
+    lua_pop(L, 1);
 
     return 1;
 }
@@ -219,10 +295,7 @@ static inline int le_new_error_type(lua_State *L, int nameidx)
 //
 static inline int le_new_type_error(lua_State *L, int typeidx)
 {
-    int idx   = (typeidx < 0) ? lua_gettop(L) + typeidx + 1 : typeidx;
-    int level = (int)lauxh_optuint8(L, idx + 3, 1);
-
-    le_loadlib(L, level);
+    int idx = (typeidx < 0) ? lua_gettop(L) + typeidx + 1 : typeidx;
 
     luaL_checkudata(L, idx, LE_ERROR_TYPE_MT);
     le_new_error(L, idx + 1);
