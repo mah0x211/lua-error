@@ -40,6 +40,8 @@ local function codegen(vars)
 #ifdef %s
     lua_pushliteral(L, "%s");
     le_new_error_type(L, -1);
+    lua_pushvalue(L, -1);
+    lua_rawseti(L, -4, %s);
     lua_rawset(L, -3);
 #endif
 ]=]
@@ -55,7 +57,7 @@ local function codegen(vars)
             if not symbol then
                 error('invalid line: ' .. line)
             elseif not decl[symbol] then
-                decl[symbol] = format(TMPL, symbol, symbol)
+                decl[symbol] = format(TMPL, symbol, symbol, symbol)
                 -- keep symbol for sort
                 decl[#decl + 1] = symbol
             end

@@ -28,9 +28,12 @@ LUALIB_API int le_open_error_errno(lua_State *L)
 {
     // create errno error types
     lua_newtable(L);
-
     // set errno
 #define GENDECL_ERRNO
+
+    // keep the errno table in LUA_REGISTRYINDEX
+    lua_pushvalue(L, -1);
+    lua_setfield(L, LUA_REGISTRYINDEX, LE_ERRNO2ERROR_TYPE_TABLE);
 
     return 1;
 }

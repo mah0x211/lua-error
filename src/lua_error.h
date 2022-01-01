@@ -304,4 +304,27 @@ static inline int le_new_type_error(lua_State *L, int typeidx)
     return 1;
 }
 
+#define LE_ERRNO2ERROR_TYPE_TABLE "error.errno2error_type"
+
+static inline int le_errno2error_type(lua_State *L, int err)
+{
+    lua_getfield(L, LUA_REGISTRYINDEX, LE_ERRNO2ERROR_TYPE_TABLE);
+    if (lua_isnil(L, -1)) {
+        // errno table does not exist in LUA_REGISTRYINDEX
+        lua_pop(L, 1);
+        return 0;
+    }
+
+    lua_rawgeti(L, -1, err);
+    if (lua_isnil(L, -1)) {
+        // error type object of errno does not exist
+        lua_pop(L, 2);
+        return 0;
+    }
+    // remove errno table
+    lua_replace(L, -2);
+
+    return 1;
+}
+
 #endif
