@@ -25,7 +25,7 @@
 
 static int new_lua(lua_State *L)
 {
-    return le_new_type_error(L, 1);
+    return le_new_typed_error(L, 1);
 }
 
 static int name_lua(lua_State *L)

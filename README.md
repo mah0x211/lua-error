@@ -178,7 +178,7 @@ create a new error that equivalent to `error.new(message [, wrap [, level [, tra
 create a new error type that equivalent to `error.type.new(name)` function.
 
 
-### static inline int le_new_type_error(lua_State *L, int typeidx)
+### static inline int le_new_typed_error(lua_State *L, int typeidx)
 
 create a new typed error that equivalent to `<myerr>:new(msg [, wrap [, level [, traceback]]])` method.
 
