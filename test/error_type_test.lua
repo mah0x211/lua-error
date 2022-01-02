@@ -84,7 +84,8 @@ function testcase.new_error()
     -- test that create new typed error with string message
     local err = t:new('typed string error')
     assert.match(tostring(err),
-                 'error_type_test%.lua.+ %[my.error%] typed string error', false)
+                 'error_type_test%.lua.+ %[type:my.error%] typed string error',
+                 false)
 
     -- test that create new typed error with structured message
     err = t:new({

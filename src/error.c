@@ -43,7 +43,7 @@ static void tostring(lua_State *L, le_error_t *err)
                           ((le_error_type_t *)lua_touserdata(L, -1))->ref_name);
             name = lua_tostring(L, -1);
             lua_pop(L, 2);
-            lua_pushfstring(L, "[%s] ", name);
+            lua_pushfstring(L, "[type:%s] ", name);
         }
         lauxh_pushref(L, err->ref_msg);
         if (err->ref_traceback != LUA_NOREF) {
@@ -161,7 +161,7 @@ static int is_lua(lua_State *L)
     default:
         return lauxh_argerror(
             L, 2, "string, table, error or error_type expected, got %s",
-            lauxh_typenameat(L, 2));
+            luaL_typename(L, 2));
     }
 
     lua_settop(L, 2);
