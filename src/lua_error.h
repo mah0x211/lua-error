@@ -245,7 +245,7 @@ static inline int le_registry_get(lua_State *L, const char *name)
 //
 //  error.type.new(name)
 //
-static inline int le_new_error_type(lua_State *L, int nameidx)
+static inline int le_new_type(lua_State *L, int nameidx)
 {
     int idx = (nameidx < 0) ? lua_gettop(L) + nameidx + 1 : nameidx;
     le_error_type_t *errt = NULL;

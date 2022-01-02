@@ -61,7 +61,7 @@ static int gc_lua(lua_State *L)
 
 static int new_type_lua(lua_State *L)
 {
-    return le_new_error_type(L, 1);
+    return le_new_type(L, 1);
 }
 
 static int del_lua(lua_State *L)

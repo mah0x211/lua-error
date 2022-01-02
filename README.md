@@ -173,7 +173,7 @@ load the lua-error module.
 create a new error that equivalent to `error.new(message [, wrap [, level [, traceback]]])` function.
 
 
-### static inline int le_new_error_type(lua_State *L, int nameidx)
+### static inline int le_new_type(lua_State *L, int nameidx)
 
 create a new error type that equivalent to `error.type.new(name)` function.
 
