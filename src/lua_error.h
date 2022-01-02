@@ -293,7 +293,7 @@ static inline int le_new_error_type(lua_State *L, int nameidx)
 //
 //  <myerr>:new(msg [, wrap [, level [, traceback]]])
 //
-static inline int le_new_type_error(lua_State *L, int typeidx)
+static inline int le_new_typed_error(lua_State *L, int typeidx)
 {
     int idx = (typeidx < 0) ? lua_gettop(L) + typeidx + 1 : typeidx;
 
