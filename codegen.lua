@@ -39,7 +39,7 @@ local function codegen(vars)
     local TMPL = [=[
 #ifdef %s
     lua_pushliteral(L, "%s");
-    le_new_error_type(L, -1);
+    le_new_type(L, -1);
     lua_pushvalue(L, -1);
     lua_rawseti(L, -4, %s);
     lua_rawset(L, -3);
