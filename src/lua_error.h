@@ -32,6 +32,7 @@
 #define LE_ERROR_MT          "error"
 #define LE_ERROR_REGISTRY_MT "error.registry"
 #define LE_ERROR_TYPE_MT     "error.type"
+#define LE_ERROR_MESSAGE_MT  "error.message"
 
 typedef struct {
     int ref_name;
@@ -306,6 +307,11 @@ static inline int le_new_typed_error(lua_State *L, int typeidx)
 
 #define LE_ERRNO2ERROR_TYPE_TABLE "error.errno2error_type"
 
+// get an error type object from `error.errno` table
+// that equivalent to the following code;
+//
+//  error.errno[err]
+//
 static inline int le_errno2error_type(lua_State *L, int err)
 {
     lua_getfield(L, LUA_REGISTRYINDEX, LE_ERRNO2ERROR_TYPE_TABLE);
@@ -323,6 +329,40 @@ static inline int le_errno2error_type(lua_State *L, int err)
     }
     // remove errno table
     lua_replace(L, -2);
+
+    return 1;
+}
+
+// create a new structured message that equivalent to the following code;
+//
+//  error.message.new(msg [, op [, code]])
+//
+// message structure:
+//  setmetatable({
+//      message = msg,
+//      op = op,
+//      code = code
+//  }, LE_ERROR_MESSAGE_MT)
+//
+static inline int le_new_message(lua_State *L, int msgidx)
+{
+    lua_settop(L, 3);
+    lua_newtable(L);
+
+#define le_pushvalue2table(idx, k)                                             \
+ do {                                                                          \
+  if (!lua_isnoneornil(L, (idx))) {                                            \
+   lua_pushvalue(L, (idx));                                                    \
+   lua_setfield(L, -2, (k));                                                   \
+  }                                                                            \
+ } while (0)
+
+    le_pushvalue2table(msgidx, "message");
+    le_pushvalue2table(msgidx + 1, "op");
+    le_pushvalue2table(msgidx + 2, "code");
+    lauxh_setmetatable(L, LE_ERROR_MESSAGE_MT);
+
+#undef le_pushvalue2table
 
     return 1;
 }

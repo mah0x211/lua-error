@@ -233,6 +233,7 @@ static int call_lua(lua_State *L)
 LUALIB_API int le_open_error_type(lua_State *L);
 LUALIB_API int le_open_error_check(lua_State *L);
 LUALIB_API int le_open_error_errno(lua_State *L);
+LUALIB_API int le_open_error_message(lua_State *L);
 
 LUALIB_API int luaopen_error(lua_State *L)
 {
@@ -269,6 +270,9 @@ LUALIB_API int luaopen_error(lua_State *L)
     // export submodules
     lua_pushliteral(L, "type");
     le_open_error_type(L);
+    lua_rawset(L, -3);
+    lua_pushliteral(L, "message");
+    le_open_error_message(L);
     lua_rawset(L, -3);
     lua_pushliteral(L, "check");
     le_open_error_check(L);

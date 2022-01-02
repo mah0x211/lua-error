@@ -204,6 +204,11 @@ get an error type object from `error.errno` table that equivalent to `error.errn
 if an error type object found, its return `1`,  otherwise return `0`.
 
 
+### static inline int le_new_message(lua_State *L, int msgidx)
+
+create a new structured message that equivalent to `error.message.new(message [, op [, code]])` function.
+
+
 ## Module Structure
 
 ```lua
@@ -367,6 +372,53 @@ equivalent to the `error.new` function, but sets the error type object to the er
 
 - `err:error`: a new error object that holds the error type object.
 
+## `error.message` module
+
+### msg = error.message.new(message [, op [, code]])
+
+create a new structured message.
+
+**message structure:**
+
+```lua
+setmetatable({
+    message = message,
+    op = op,
+    code = code
+}, LE_ERROR_MESSAGE_MT)
+```
+
+the `__tostring` metamethod of the `LE_ERROR_MESSAGE_MT` metatable is equivalent to the following code.
+
+```lua
+local function __tostring(self, where, traceback, errt)
+    local result = {
+        where,
+    }
+
+    if errt then
+        result[#result + 1] = string.format('[type:%s]', errt:name())
+    end
+
+    if self.op then
+        result[#result + 1] = string.format('[op:%s]', tostring(self.op))
+    end
+
+    if self.code then
+        result[#result + 1] = string.format('[code:%s]', tostring(self.code))
+    end
+
+    result[#result + 1] = ' '
+    result[#result + 1] = tostring(self.message)
+
+    if traceback then
+        result[#result + 1] = '\n'
+        result[#result + 1] = tostring(traceback)
+    end
+
+    return table.concat(result)
+end
+```
 
 ## `error.errno` module
 
