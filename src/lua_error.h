@@ -99,10 +99,16 @@ static inline void le_loadlib(lua_State *L, int level)
     lua_settop(L, top);
 }
 
-// create a new error that equivalent to the following code;
-//
-//  error.new(msg [, wrap [, level [, traceback]]])
-//
+/**
+ * create a new error that equivalent to the following code;
+ *
+ *  error.new(msg [, wrap [, level [, traceback]]])
+ *
+ * push all arguments (including nil) onto the stack and call the API with
+ * the msg index.
+ * the last argument must be placed at the top of the stack.
+ * this function removes all arguments from the stack.
+ */
 static inline int le_new_error(lua_State *L, int msgidx)
 {
     int idx          = (msgidx < 0) ? lua_gettop(L) + msgidx + 1 : msgidx;
@@ -170,13 +176,16 @@ INVALID_ARG:
     }
     // create new error
     lauxh_setmetatable(L, LE_ERROR_MT);
+    // remove all arguments
+    lua_replace(L, idx);
+    lua_settop(L, idx);
 
     return 1;
 }
 
-//
-// error type registry
-//
+/**
+ * error type registry
+ */
 static inline void le_registry(lua_State *L)
 {
     lua_getfield(L, LUA_REGISTRYINDEX, LE_ERROR_REGISTRY_MT ".REGISTRY_TABLE");
@@ -194,32 +203,32 @@ static inline void le_registry(lua_State *L)
     }
 }
 
-// delete a error type from registry that equivalent to the following code;
-//
-//  error.type.del(name)
-//
+/**
+ * delete a error type from registry that equivalent to the following code;
+ *
+ *  error.type.del(name)
+ */
 static inline int le_registry_del(lua_State *L, const char *name)
 {
-    int rc = 0;
-
     le_registry(L);
     lua_getfield(L, -1, name);
-    // not nil
-    rc = !lua_isnil(L, -1);
-    if (rc) {
-        lua_pop(L, 1);
-        lua_pushnil(L);
-        lua_setfield(L, -2, name);
+    if (lua_isnil(L, -1)) {
+        lua_pop(L, 2);
+        return 0;
     }
     lua_pop(L, 1);
+    lua_pushnil(L);
+    lua_setfield(L, -2, name);
+    lua_pop(L, 1);
 
-    return rc;
+    return 1;
 }
 
-// get a error type object from registry that equivalent to the following code;
-//
-//  error.type.get(name)
-//
+/**
+ * get a error type object from registry that equivalent to the following code;
+ *
+ *  error.type.get(name)
+ */
 static inline int le_registry_get(lua_State *L, const char *name)
 {
     le_registry(L);
@@ -242,10 +251,15 @@ static inline int le_registry_get(lua_State *L, const char *name)
     return 1;
 }
 
-// create a new error type that equivalent to the following code;
-//
-//  error.type.new(name)
-//
+/**
+ * create a new error type that equivalent to the following code;
+ *
+ *  error.type.new(name)
+ *
+ * push name arguments onto the stack and call the API with the name index.
+ * the last argument must be placed at the top of the stack.
+ * this function removes all arguments from the stack.
+ */
 static inline int le_new_type(lua_State *L, int nameidx)
 {
     int idx = (nameidx < 0) ? lua_gettop(L) + nameidx + 1 : nameidx;
@@ -281,6 +295,9 @@ static inline int le_new_type(lua_State *L, int nameidx)
     errt           = lua_newuserdata(L, sizeof(le_error_type_t));
     errt->ref_name = lauxh_refat(L, idx);
     lauxh_setmetatable(L, LE_ERROR_TYPE_MT);
+    // remove all arguments
+    lua_replace(L, idx);
+    lua_settop(L, idx);
     // register
     le_registry(L);
     lua_pushvalue(L, -2);
@@ -290,10 +307,16 @@ static inline int le_new_type(lua_State *L, int nameidx)
     return 1;
 }
 
-// create a new typed error that equivalent to the following code;
-//
-//  <myerr>:new(msg [, wrap [, level [, traceback]]])
-//
+/**
+ * create a new typed error that equivalent to the following code;
+ *
+ *  <myerr>:new(msg [, wrap [, level [, traceback]]])
+ *
+ * push all arguments (including nil) onto the stack and call the API with
+ * the type index.
+ * the last argument must be placed at the top of the stack.
+ * this function removes all arguments from the stack.
+ */
 static inline int le_new_typed_error(lua_State *L, int typeidx)
 {
     int idx = (typeidx < 0) ? lua_gettop(L) + typeidx + 1 : typeidx;
@@ -301,17 +324,21 @@ static inline int le_new_typed_error(lua_State *L, int typeidx)
     luaL_checkudata(L, idx, LE_ERROR_TYPE_MT);
     le_new_error(L, idx + 1);
     ((le_error_t *)lua_touserdata(L, -1))->ref_type = lauxh_refat(L, idx);
+    // remove all arguments
+    lua_replace(L, idx);
+    lua_settop(L, idx);
 
     return 1;
 }
 
 #define LE_ERRNO2ERROR_TYPE_TABLE "error.errno2error_type"
 
-// get an error type object from `error.errno` table
-// that equivalent to the following code;
-//
-//  error.errno[err]
-//
+/**
+ * get an error type object from `error.errno` table
+ * that equivalent to the following code;
+ *
+ *  error.errno[err]
+ */
 static inline int le_errno2error_type(lua_State *L, int err)
 {
     lua_getfield(L, LUA_REGISTRYINDEX, LE_ERRNO2ERROR_TYPE_TABLE);
@@ -333,20 +360,27 @@ static inline int le_errno2error_type(lua_State *L, int err)
     return 1;
 }
 
-// create a new structured message that equivalent to the following code;
-//
-//  error.message.new(msg [, op [, code]])
-//
-// message structure:
-//  setmetatable({
-//      message = msg,
-//      op = op,
-//      code = code
-//  }, LE_ERROR_MESSAGE_MT)
-//
+/**
+ * create a new structured message that equivalent to the following code;
+ *
+ *  error.message.new(msg [, op [, code]])
+ *
+ * push all arguments (including nil) onto the stack and call the API with
+ * the msg index.
+ * the last argument must be placed at the top of the stack.
+ * this function removes all arguments from the stack.
+ *
+ * the message structure is as follows:
+ *  setmetatable({
+ *      message = msg,
+ *      op = op,
+ *      code = code
+ *  }, LE_ERROR_MESSAGE_MT)
+ */
 static inline int le_new_message(lua_State *L, int msgidx)
 {
-    lua_settop(L, 3);
+    msgidx = (msgidx < 0) ? lua_gettop(L) + msgidx + 1 : msgidx;
+    lua_settop(L, msgidx + 3);
     lua_newtable(L);
 
 #define le_pushvalue2table(idx, k)                                             \
@@ -361,6 +395,9 @@ static inline int le_new_message(lua_State *L, int msgidx)
     le_pushvalue2table(msgidx + 1, "op");
     le_pushvalue2table(msgidx + 2, "code");
     lauxh_setmetatable(L, LE_ERROR_MESSAGE_MT);
+    // remove all arguments
+    lua_replace(L, msgidx);
+    lua_settop(L, msgidx);
 
 #undef le_pushvalue2table
 
