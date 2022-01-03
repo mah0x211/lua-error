@@ -216,6 +216,13 @@ static int typeof_lua(lua_State *L)
     return 1;
 }
 
+static int debug_lua(lua_State *L)
+{
+    lua_pushboolean(L, lauxh_checkboolean(L, 1));
+    lua_setfield(L, LUA_REGISTRYINDEX, LE_ERROR_DEBUG_FLG);
+    return 0;
+}
+
 static int call_lua(lua_State *L)
 {
     int level = (int)luaL_optinteger(L, 3, 1);
@@ -243,6 +250,7 @@ LUALIB_API int luaopen_error(lua_State *L)
         {NULL,         NULL        }
     };
     struct luaL_Reg funcs[] = {
+        {"debug",   debug_lua  },
         {"typeof",  typeof_lua },
         {"is",      is_lua     },
         {"cause",   cause_lua  },
@@ -261,6 +269,10 @@ LUALIB_API int luaopen_error(lua_State *L)
         lauxh_pushfn2tbl(L, ptr->name, ptr->func);
     }
     lua_pop(L, 1);
+
+    // set default debug flag to false
+    lua_pushboolean(L, 0);
+    lua_setfield(L, LUA_REGISTRYINDEX, LE_ERROR_DEBUG_FLG);
 
     // export funcs
     lua_newtable(L);
