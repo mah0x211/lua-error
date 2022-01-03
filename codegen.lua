@@ -37,11 +37,12 @@ end
 
 local function codegen(vars)
     local TMPL = [=[
-#ifdef %s
-    lua_pushliteral(L, "%s");
+#ifdef __DEFVAL__
+    lua_pushliteral(L, "__DEFVAL__");
+    lua_pushliteral(L, "__DEFVAL__");
     le_new_type(L, -1);
     lua_pushvalue(L, -1);
-    lua_rawseti(L, -4, %s);
+    lua_rawseti(L, -4, __DEFVAL__);
     lua_rawset(L, -3);
 #endif
 ]=]
@@ -57,7 +58,7 @@ local function codegen(vars)
             if not symbol then
                 error('invalid line: ' .. line)
             elseif not decl[symbol] then
-                decl[symbol] = format(TMPL, symbol, symbol, symbol)
+                decl[symbol] = gsub(TMPL, '__DEFVAL__', symbol)
                 -- keep symbol for sort
                 decl[#decl + 1] = symbol
             end
