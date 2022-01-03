@@ -248,6 +248,15 @@ creates a new error object.
 - `err:error`: error object that contains the `__tostring` metamethod.
 
 
+### error.debug(mode)
+
+sets the traceback argument is forced to be `true`.
+
+**Params**
+
+- `mode:boolean`: `true` to enable the debug mode, or `false` to disable it.
+
+
 ### err = error.toerror(message [, wrap [, level [, traceback]]])
 
 equivalent to the `error.new` function, but if the `message` is an `error` object, it will be returned as is.
