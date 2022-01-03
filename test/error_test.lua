@@ -4,6 +4,14 @@ local assert = require('assertex')
 local testcase = require('testcase')
 local error = require('error')
 
+function testcase.after_each()
+    error.debug(false)
+end
+
+function testcase.after_all()
+    error.debug(false)
+end
+
 function testcase.call()
     -- test that behavior of __call metamethod is the same as built-in error func
     for _, lv in ipairs({
@@ -257,5 +265,15 @@ function testcase.toerror()
 
     -- test that return passed error
     assert.rawequal(error.toerror(err, 'foo'), err)
+end
+
+function testcase.debug()
+    -- test that the traceback argument is forced to be true if sets the debug flag is true
+    error.debug(true)
+    local err = error.new('hello error', nil, nil, false)
+    assert.match(tostring(err), 'stack traceback')
+    error.debug(false)
+    err = error.new('hello error', nil, nil, false)
+    assert.not_match(tostring(err), 'stack traceback')
 end
 

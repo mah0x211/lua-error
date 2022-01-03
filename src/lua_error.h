@@ -99,6 +99,20 @@ static inline void le_loadlib(lua_State *L, int level)
     lua_settop(L, top);
 }
 
+#define LE_ERROR_DEBUG_FLG "error.debug"
+
+static inline int le_isdebug(lua_State *L)
+{
+    int isdebug = 0;
+
+    // get debug flag
+    lua_getfield(L, LUA_REGISTRYINDEX, LE_ERROR_DEBUG_FLG);
+    isdebug = !lua_isnoneornil(L, -1) && lauxh_checkboolean(L, -1);
+    lua_pop(L, 1);
+
+    return isdebug;
+}
+
 /**
  * create a new error that equivalent to the following code;
  *
@@ -170,7 +184,7 @@ INVALID_ARG:
     }
     le_where(L, level);
     err->ref_where = lauxh_ref(L);
-    if (traceback) {
+    if (le_isdebug(L) || traceback) {
         lauxh_traceback(NULL, L, NULL, level);
         err->ref_traceback = lauxh_ref(L);
     }
