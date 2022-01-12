@@ -1,6 +1,5 @@
 local unpack = unpack or table.unpack
 local builtin_error = error
-local assert = require('assertex')
 local testcase = require('testcase')
 local error = require('error')
 

@@ -1,4 +1,3 @@
-local assert = require('assertex')
 local testcase = require('testcase')
 local error_check = require('error').check
 
@@ -73,7 +72,7 @@ function testcase.check()
             },
             invalid = {
                 {
-                    arg = require('assertex.lightuserdata'),
+                    arg = require('assert.lightuserdata'),
                     match = 'userdata expected, got pointer',
                 },
             },
@@ -81,7 +80,7 @@ function testcase.check()
         -- pointer
         [error_check.pointer] = {
             valid = {
-                require('assertex.lightuserdata'),
+                require('assert.lightuserdata'),
                 nil,
             },
             invalid = {

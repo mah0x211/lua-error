@@ -1,4 +1,3 @@
-local assert = require('assertex')
 local testcase = require('testcase')
 local error = require('error')
 local message = error.message
