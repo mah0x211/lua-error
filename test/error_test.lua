@@ -11,6 +11,18 @@ function testcase.after_all()
     error.debug(false)
 end
 
+function testcase.check_submodules()
+    -- test that submodules are included
+    for _, name in ipairs({
+        'type',
+        'message',
+        'check',
+        'errno',
+    }) do
+        assert.is_table(error[name])
+    end
+end
+
 function testcase.call()
     -- test that behavior of __call metamethod is the same as built-in error func
     for _, lv in ipairs({
@@ -232,29 +244,20 @@ function testcase.is()
     assert.rawequal(error.is(err, obj), err_obj)
     assert.rawequal(error.is(err, err_obj), err_obj)
 
-    -- test that throw error
-    for _, v in ipairs({
-        -- invalid error argument
-        {
-            arg = {
-                'foo',
-            },
-            match = '#1 .+error expected',
-        },
-        -- invalid target argument
-        {
-            arg = {
-                err,
-                12.34,
-            },
-            match = '#2 .+string, table, error or error_type expected',
-        },
-    }) do
-        err = assert.throws(function()
-            error.is(unpack(v.arg))
-        end)
-        assert.match(err, v.match, false)
-    end
+    -- test that return nil if no arguments
+    assert.is_nil(error.is())
+
+    -- test that return nil if first argument is not an error object
+    assert.is_nil(error.is('foo'))
+
+    -- test that return nil if no second argument
+    assert.is_nil(error.is(err))
+
+    -- test that throws an error if second argument is invalid
+    err = assert.throws(function()
+        error.is(err, 12.34)
+    end)
+    assert.match(err, '#2 .+string, table, error or error_type expected', false)
 end
 
 function testcase.toerror()

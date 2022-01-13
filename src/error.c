@@ -133,10 +133,20 @@ static int cause_lua(lua_State *L)
 
 static int is_lua(lua_State *L)
 {
-    le_error_t *err  = luaL_checkudata(L, 1, LE_ERROR_MT);
-    uintptr_t src    = (uintptr_t)err;
-    uintptr_t target = (uintptr_t)lua_topointer(L, 2);
+    int top          = lua_gettop(L);
+    le_error_t *err  = NULL;
+    uintptr_t src    = 0;
+    uintptr_t target = 0;
     void *label      = NULL;
+
+    // do nothing if first argument is not an error object
+    if (top < 2 || !lauxh_isuserdataof(L, 1, LE_ERROR_MT)) {
+        lua_pushnil(L);
+        return 1;
+    }
+    err    = (le_error_t *)lua_touserdata(L, 1);
+    src    = (uintptr_t)err;
+    target = (uintptr_t)lua_topointer(L, 2);
 
     // check target argument
     switch (lua_type(L, 2)) {

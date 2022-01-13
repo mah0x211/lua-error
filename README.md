@@ -300,8 +300,7 @@ the target object is converted to `uintptr_t` and compared with the error object
 
 **Returns**
 
-- `err:error`: matched error object, or `nil`.
-
+- `err:error`: matched error object, or `nil`. (even if the `err` is not an error object or the `target` is not specified.)
 
 ### errt = error.typeof(err)
 
