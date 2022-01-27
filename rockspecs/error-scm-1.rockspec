@@ -12,6 +12,7 @@ description = {
 }
 dependencies = {
     'lua >= 5.1',
+    'lauxhlib >= 0.1.0',
 }
 build = {
     type = 'make',
