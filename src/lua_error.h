@@ -23,8 +23,8 @@
 #ifndef lua_error_h
 #define lua_error_h
 
-#include "lauxhlib.h"
 #include <ctype.h>
+#include <lauxhlib.h>
 #include <lua.h>
 #include <string.h>
 #include <unistd.h>
