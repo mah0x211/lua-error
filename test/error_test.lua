@@ -1,4 +1,4 @@
-local unpack = unpack or table.unpack
+local unpack = require('unpack')
 local builtin_error = error
 local testcase = require('testcase')
 local error = require('error')
@@ -125,7 +125,7 @@ function testcase.new()
                 nil,
                 'foo',
             },
-            match = '#3 .+number expected',
+            match = '#3 .+integer expected',
         },
         {
             arg = {

@@ -34,7 +34,8 @@ jobs:
           - "5.2"
           - "5.3"
           - "5.4"
-
+          - "luajit-2.0.5"
+          - "luajit-openresty"
     steps:
     -
       name: Checkout
@@ -52,12 +53,24 @@ jobs:
     -
       name: Install Tools
       run: |
+        sudo apt install lcov -y
         luarocks install testcase
+        luarocks install unpack
     -
       name: Install
       run: |
-        luarocks make
+        luarocks make COVERAGE='--coverage'
     -
       name: Run Test
       run: |
         testcase ./test/
+    -
+      name: Generate coverage reports
+      run: |
+        sh ./covergen.sh
+    -
+      name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v2
+      with:
+        files: ./coverage/lcov.info
+        flags: unittests
