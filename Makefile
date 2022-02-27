@@ -10,10 +10,10 @@ INSTALL?=install
 all: preprocess $(TARGET)
 
 %.o: %.c
-	$(CC) $(CFLAGS) $(WARNINGS) $(CPPFLAGS) -o $@ -c $<
+	$(CC) $(CFLAGS) $(WARNINGS) $(COVERAGE) $(CPPFLAGS) -o $@ -c $<
 
 $(TARGET): $(OBJS)
-	$(CC) -o $@ $^ $(LDFLAGS) $(LIBS) $(PLATFORM_LDFLAGS)
+	$(CC) -o $@ $^ $(LDFLAGS) $(LIBS) $(PLATFORM_LDFLAGS) $(COVERAGE)
 
 preprocess:
 	lua ./codegen.lua $(VARS) $(TMPL)
