@@ -330,7 +330,7 @@ static inline int le_new_type(lua_State *L, int nameidx)
 /**
  * create a new typed error that equivalent to the following code;
  *
- *  <myerr>:new(msg [, wrap [, level [, traceback]]])
+ *  <myerr>:new([message [, wrap [, level [, traceback]]]])
  *
  * push all arguments (including nil) onto the stack and call the API with
  * the type index.
@@ -340,10 +340,22 @@ static inline int le_new_type(lua_State *L, int nameidx)
 static inline int le_new_typed_error(lua_State *L, int typeidx)
 {
     int idx = (typeidx < 0) ? lua_gettop(L) + typeidx + 1 : typeidx;
+    le_error_type_t *errt = luaL_checkudata(L, idx, LE_ERROR_TYPE_MT);
+    int nomsg             = lua_isnoneornil(L, idx + 1);
+    le_error_t *err       = NULL;
 
-    luaL_checkudata(L, idx, LE_ERROR_TYPE_MT);
+    if (nomsg && errt->ref_msg != LUA_NOREF) {
+        lauxh_pushref(L, errt->ref_msg);
+        if ((idx + 1) < lua_gettop(L)) {
+            lua_replace(L, (idx + 1));
+        }
+    }
     le_new_error(L, idx + 1);
-    ((le_error_t *)lua_touserdata(L, -1))->ref_type = lauxh_refat(L, idx);
+    err           = lua_touserdata(L, -1);
+    err->ref_type = lauxh_refat(L, idx);
+    if (nomsg) {
+        err->ref_msg = lauxh_unref(L, err->ref_msg);
+    }
     // remove all arguments
     lua_replace(L, idx);
     lua_settop(L, idx);
@@ -383,7 +395,7 @@ static inline int le_errno2error_type(lua_State *L, int err)
 /**
  * create a new structured message that equivalent to the following code;
  *
- *  error.message.new(msg [, op [, code]])
+ *  error.message.new(message [, op [, code]])
  *
  * push all arguments (including nil) onto the stack and call the API with
  * the msg index.

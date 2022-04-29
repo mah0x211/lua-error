@@ -117,15 +117,21 @@ function testcase.del()
 end
 
 function testcase.new_error()
-    local t = error_type.new('my.error', nil, 'main error message')
+    -- test that create new typed error without message
+    local t = error_type.new('my.error1', nil, 'main error message')
+    local err = t:new()
+    assert.match(err,
+                 'error_type_test%.lua.+ %[my.error1%] main error message$',
+                 false)
 
     -- test that create new typed error with string message
-    local err = t:new('typed string error')
+    err = t:new('typed string error')
     assert.match(tostring(err),
-                 'error_type_test%.lua.+ %[my.error%] .+ [(]typed string error[)]',
+                 'error_type_test%.lua.+ %[my.error1%] .+ [(]typed string error[)]',
                  false)
 
     -- test that create new typed error with structured message
+    t = error_type.new('my.error')
     err = t:new({
         tostring = function(_, where, traceback, errt)
             assert.equal(t, errt)

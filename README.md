@@ -176,12 +176,12 @@ create a new error that equivalent to `error.new(message [, wrap [, level [, tra
 
 ### static inline int le_new_type(lua_State *L, int nameidx)
 
-create a new error type that equivalent to `error.type.new(name [, code])` function.
+create a new error type that equivalent to `error.type.new(name [, code [, message]])` function.
 
 
 ### static inline int le_new_typed_error(lua_State *L, int typeidx)
 
-create a new typed error that equivalent to `<myerr>:new(msg [, wrap [, level [, traceback]]])` method.
+create a new typed error that equivalent to `<myerr>:new([msg [, wrap [, level [, traceback]]]])` method.
 
 
 ### static inline int le_registry_get(lua_State *L, const char *name)
@@ -393,13 +393,15 @@ delete a error type from the registry table.
 - `msg:string`: the message of the error type object.
 
 
-### err = errt:new(message [, wrap [, level [, traceback]]])
+### err = errt:new([message [, wrap [, level [, traceback]]]])
 
-equivalent to the `error.new` function, but sets the error type object to the error object.
+equivalent to the `error.new` function except message argument can be set to `nil`.  
+it also sets the error type object to the error object.
 
 **Returns**
 
 - `err:error`: a new error object that holds the error type object.
+
 
 ## `error.message` module
 
