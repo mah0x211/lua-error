@@ -36,6 +36,7 @@
 
 typedef struct {
     int ref_name;
+    lua_Integer code;
 } le_error_type_t;
 
 typedef struct {
@@ -280,6 +281,7 @@ static inline int le_new_type(lua_State *L, int nameidx)
     le_error_type_t *errt = NULL;
     size_t len            = 0;
     const char *name      = lauxh_checklstring(L, idx, &len);
+    lua_Integer code      = lauxh_optinteger(L, idx + 1, -1);
 
     // verify type name
     if (len == 0 || len > 127) {
@@ -308,6 +310,7 @@ static inline int le_new_type(lua_State *L, int nameidx)
     // create new le_error_type_t
     errt           = lua_newuserdata(L, sizeof(le_error_type_t));
     errt->ref_name = lauxh_refat(L, idx);
+    errt->code     = code;
     lauxh_setmetatable(L, LE_ERROR_TYPE_MT);
     // remove all arguments
     lua_replace(L, idx);

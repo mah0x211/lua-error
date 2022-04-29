@@ -15,6 +15,14 @@ function testcase.new()
     -- test that create new error type
     local t = error_type.new('my.error')
     assert.match(tostring(t), '^my.error: ', false)
+    assert.equal(t:name(), 'my.error')
+    assert.equal(t:code(), -1)
+
+    -- test that create new error type with code
+    t = error_type.new('my.error2', 123)
+    assert.match(tostring(t), '^my.error2: ', false)
+    assert.equal(t:name(), 'my.error2')
+    assert.equal(t:code(), 123)
 
     -- test that throw error
     for _, v in ipairs({
@@ -48,6 +56,22 @@ function testcase.new()
         end)
         assert.match(err, v.match, false)
     end
+end
+
+function testcase.gced()
+    -- test that an error-types are kept in the registry as a weak references
+    local err
+    do
+        -- luacheck: ignore t1
+        local t1 = error_type.new('my.error1')
+        local t2 = error_type.new('my.error2')
+        err = t2:new('message')
+    end
+    collectgarbage('collect')
+    assert(err ~= nil)
+    assert.is_nil(error_type.get('my.error'))
+    local t2 = error_type.get('my.error2')
+    assert.equal(t2:name(), 'my.error2')
 end
 
 function testcase.get()
