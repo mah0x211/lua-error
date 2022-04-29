@@ -319,7 +319,7 @@ get the error type object associated with the error object.
 ## `error.type` module
 
 
-### errt = error.type.new(name [, code])
+### errt = error.type.new(name [, code [, message]])
 
 creates a new error type object.  
 the created error type object will be kept in `the registry table` that cannot be accessed directly.  
@@ -333,6 +333,7 @@ the created error type object will be kept in `the registry table` that cannot b
   - first character must be an `a-zA-Z` character.
   - only the following characters can be used: `a-zA-Z0-9`, `.` and `_`.
 - `code:integer`: error code. (default: `-1`).
+- `message:string`: error message.
 
 **Returns**
 

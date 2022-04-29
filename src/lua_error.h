@@ -36,6 +36,7 @@
 
 typedef struct {
     int ref_name;
+    int ref_msg;
     lua_Integer code;
 } le_error_type_t;
 
@@ -269,7 +270,7 @@ static inline int le_registry_get(lua_State *L, const char *name)
 /**
  * create a new error type that equivalent to the following code;
  *
- *  error.type.new(name)
+ *  error.type.new(name [, code [, message]])
  *
  * push name arguments onto the stack and call the API with the name index.
  * the last argument must be placed at the top of the stack.
@@ -282,6 +283,7 @@ static inline int le_new_type(lua_State *L, int nameidx)
     size_t len            = 0;
     const char *name      = lauxh_checklstring(L, idx, &len);
     lua_Integer code      = lauxh_optinteger(L, idx + 1, -1);
+    const char *msg       = lauxh_optstring(L, idx + 2, NULL);
 
     // verify type name
     if (len == 0 || len > 127) {
@@ -311,6 +313,7 @@ static inline int le_new_type(lua_State *L, int nameidx)
     errt           = lua_newuserdata(L, sizeof(le_error_type_t));
     errt->ref_name = lauxh_refat(L, idx);
     errt->code     = code;
+    errt->ref_msg  = (msg) ? lauxh_refat(L, idx + 2) : LUA_NOREF;
     lauxh_setmetatable(L, LE_ERROR_TYPE_MT);
     // remove all arguments
     lua_replace(L, idx);

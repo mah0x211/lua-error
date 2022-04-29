@@ -15,14 +15,10 @@ function testcase.new()
     -- test that create new error type
     local t = error_type.new('my.error')
     assert.match(tostring(t), '^my.error: ', false)
-    assert.equal(t:name(), 'my.error')
-    assert.equal(t:code(), -1)
 
     -- test that create new error type with code
     t = error_type.new('my.error2', 123)
     assert.match(tostring(t), '^my.error2: ', false)
-    assert.equal(t:name(), 'my.error2')
-    assert.equal(t:code(), 123)
 
     -- test that throw error
     for _, v in ipairs({
@@ -74,6 +70,21 @@ function testcase.gced()
     assert.equal(t2:name(), 'my.error2')
 end
 
+function testcase.name()
+    -- test that return type name
+    local t = error_type.new('my.error')
+    assert.equal(t:name(), 'my.error')
+end
+
+function testcase.code()
+    -- test that return type code
+    local t = error_type.new('my.error')
+    assert.equal(t:code(), -1)
+
+    t = error_type.new('my.error2', 123)
+    assert.equal(t:code(), 123)
+end
+
 function testcase.get()
     do
         local t = error_type.new('my.error')
@@ -95,19 +106,13 @@ function testcase.del()
     assert.is_false(error_type.del('my.error'))
 end
 
-function testcase.name()
-    -- test that return type name
-    local t = error_type.new('my.error')
-    assert.equal(t:name(), 'my.error')
-end
-
 function testcase.new_error()
-    local t = error_type.new('my.error')
+    local t = error_type.new('my.error', nil, 'main error message')
 
     -- test that create new typed error with string message
     local err = t:new('typed string error')
     assert.match(tostring(err),
-                 'error_type_test%.lua.+ %[type:my.error%] typed string error',
+                 'error_type_test%.lua.+ %[my.error%] .+ [(]typed string error[)]',
                  false)
 
     -- test that create new typed error with structured message
