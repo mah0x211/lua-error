@@ -176,7 +176,7 @@ create a new error that equivalent to `error.new(message [, wrap [, level [, tra
 
 ### static inline int le_new_type(lua_State *L, int nameidx)
 
-create a new error type that equivalent to `error.type.new(name)` function.
+create a new error type that equivalent to `error.type.new(name [, code])` function.
 
 
 ### static inline int le_new_typed_error(lua_State *L, int typeidx)
@@ -319,7 +319,7 @@ get the error type object associated with the error object.
 ## `error.type` module
 
 
-### errt = error.type.new(name)
+### errt = error.type.new(name [, code])
 
 creates a new error type object.  
 the created error type object will be kept in `the registry table` that cannot be accessed directly.  
@@ -332,6 +332,7 @@ the created error type object will be kept in `the registry table` that cannot b
   - length must be between `1-127` characters.
   - first character must be an `a-zA-Z` character.
   - only the following characters can be used: `a-zA-Z0-9`, `.` and `_`.
+- `code:integer`: error code. (default: `-1`).
 
 **Returns**
 
