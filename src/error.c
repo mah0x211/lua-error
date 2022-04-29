@@ -140,11 +140,13 @@ static int unwrap_lua(lua_State *L)
 
 static int cause_lua(lua_State *L)
 {
-    le_error_t *err = luaL_checkudata(L, 1, LE_ERROR_MT);
-
+    if (lua_gettop(L) == 0) {
+        lua_pushnil(L);
+    } else if (lauxh_ismetatableof(L, 1, LE_ERROR_MT)) {
+        lauxh_pushref(L, ((le_error_t *)lua_touserdata(L, 1))->ref_msg);
+        return 1;
+    }
     lua_settop(L, 1);
-    lauxh_pushref(L, err->ref_msg);
-
     return 1;
 }
 
@@ -184,7 +186,7 @@ static int is_lua(lua_State *L)
             label = &&COMPARE_ERROR_TYPE;
             break;
         }
-        // pass through
+        // fallthrough
     default:
         return lauxh_argerror(
             L, 2, "string, table, error or error_type expected, got %s",

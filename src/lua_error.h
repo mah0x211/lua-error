@@ -145,7 +145,7 @@ static inline int le_new_error(lua_State *L, int msgidx)
     err->ref_wrap      = LUA_NOREF;
     err->ref_type      = LUA_NOREF;
 
-    // check argument
+    // check message argument
     switch (lua_type(L, idx)) {
     case LUA_TTABLE:
         lua_pushliteral(L, "tostring");
