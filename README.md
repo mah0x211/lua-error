@@ -374,6 +374,15 @@ delete a error type from the registry table.
 - `name:string`: the name of the error type object.
 
 
+### code = errt:code()
+
+`code()` method returns the code of the error type object.
+
+**Returns**
+
+- `code:integer`: the code of the error type object.
+
+
 ### err = errt:new(message [, wrap [, level [, traceback]]])
 
 equivalent to the `error.new` function, but sets the error type object to the error object.

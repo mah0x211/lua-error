@@ -28,6 +28,16 @@ static int new_lua(lua_State *L)
     return le_new_typed_error(L, 1);
 }
 
+static int code_lua(lua_State *L)
+{
+    le_error_type_t *errt = luaL_checkudata(L, 1, LE_ERROR_TYPE_MT);
+
+    lua_settop(L, 1);
+    lua_pushinteger(L, errt->code);
+
+    return 1;
+}
+
 static int name_lua(lua_State *L)
 {
     le_error_type_t *errt = luaL_checkudata(L, 1, LE_ERROR_TYPE_MT);
@@ -92,6 +102,7 @@ LUALIB_API int le_open_error_type(lua_State *L)
     };
     struct luaL_Reg method[] = {
         {"name", name_lua},
+        {"code", code_lua},
         {"new",  new_lua },
         {NULL,   NULL    }
     };
