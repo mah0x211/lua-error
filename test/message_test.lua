@@ -19,3 +19,11 @@ function testcase.new()
     assert.match(tostring(msg), '[op:test-op][code:123] hello')
 end
 
+function testcase.with_error_type()
+    local msg = message.new('hello')
+
+    -- test that  create new structured message
+    local t = error.type.new('myerr')
+    local err = t:new(msg)
+    assert.match(err, '[type:myerr] hello')
+end

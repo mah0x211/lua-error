@@ -176,12 +176,12 @@ create a new error that equivalent to `error.new(message [, wrap [, level [, tra
 
 ### static inline int le_new_type(lua_State *L, int nameidx)
 
-create a new error type that equivalent to `error.type.new(name [, code])` function.
+create a new error type that equivalent to `error.type.new(name [, code [, message]])` function.
 
 
 ### static inline int le_new_typed_error(lua_State *L, int typeidx)
 
-create a new typed error that equivalent to `<myerr>:new(msg [, wrap [, level [, traceback]]])` method.
+create a new typed error that equivalent to `<myerr>:new([msg [, wrap [, level [, traceback]]]])` method.
 
 
 ### static inline int le_registry_get(lua_State *L, const char *name)
@@ -319,7 +319,7 @@ get the error type object associated with the error object.
 ## `error.type` module
 
 
-### errt = error.type.new(name [, code])
+### errt = error.type.new(name [, code [, message]])
 
 creates a new error type object.  
 the created error type object will be kept in `the registry table` that cannot be accessed directly.  
@@ -333,6 +333,7 @@ the created error type object will be kept in `the registry table` that cannot b
   - first character must be an `a-zA-Z` character.
   - only the following characters can be used: `a-zA-Z0-9`, `.` and `_`.
 - `code:integer`: error code. (default: `-1`).
+- `message:string`: error message.
 
 **Returns**
 
@@ -383,13 +384,24 @@ delete a error type from the registry table.
 - `code:integer`: the code of the error type object.
 
 
-### err = errt:new(message [, wrap [, level [, traceback]]])
+### msg = errt:message()
 
-equivalent to the `error.new` function, but sets the error type object to the error object.
+`message()` method returns the message of the error type object.
+
+**Returns**
+
+- `msg:string`: the message of the error type object.
+
+
+### err = errt:new([message [, wrap [, level [, traceback]]]])
+
+equivalent to the `error.new` function except message argument can be set to `nil`.  
+it also sets the error type object to the error object.
 
 **Returns**
 
 - `err:error`: a new error object that holds the error type object.
+
 
 ## `error.message` module
 

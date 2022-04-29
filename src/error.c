@@ -36,16 +36,33 @@ static void tostring(lua_State *L, le_error_t *err)
         int top = lua_gettop(L);
 
         lauxh_pushref(L, err->ref_where);
-        if (err->ref_type != LUA_NOREF) {
-            const char *name = NULL;
+        if (err->ref_type == LUA_NOREF) {
+            lauxh_pushref(L, err->ref_msg);
+        } else {
+            const char *name      = NULL;
+            le_error_type_t *errt = NULL;
+
             lauxh_pushref(L, err->ref_type);
-            lauxh_pushref(L,
-                          ((le_error_type_t *)lua_touserdata(L, -1))->ref_name);
+            errt = lua_touserdata(L, -1);
+            lua_pop(L, 1);
+
+            lauxh_pushref(L, errt->ref_name);
             name = lua_tostring(L, -1);
-            lua_pop(L, 2);
-            lua_pushfstring(L, "[type:%s] ", name);
+            lua_pop(L, 1);
+            lua_pushfstring(L, "[%s] ", name);
+            if (errt->ref_msg == LUA_NOREF) {
+                lauxh_pushref(L, err->ref_msg);
+            } else {
+                // use a type message as main message
+                lauxh_pushref(L, errt->ref_msg);
+                if (err->ref_msg != LUA_NOREF) {
+                    lua_pushliteral(L, " (");
+                    lauxh_pushref(L, err->ref_msg);
+                    lua_pushliteral(L, ")");
+                }
+            }
         }
-        lauxh_pushref(L, err->ref_msg);
+
         if (err->ref_traceback != LUA_NOREF) {
             lua_pushliteral(L, "\n");
             lauxh_pushref(L, err->ref_traceback);

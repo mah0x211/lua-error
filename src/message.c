@@ -72,7 +72,7 @@ static int tostring_lua(lua_State *L)
     lua_settop(L, 4);
     luaL_buffinit(L, &b);
 
-    // whare
+    // where
     if (!lua_isnil(L, 2)) {
         tostring(L, 2);
         lua_pushvalue(L, 2);
