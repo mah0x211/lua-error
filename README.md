@@ -384,6 +384,15 @@ delete a error type from the registry table.
 - `code:integer`: the code of the error type object.
 
 
+### msg = errt:message()
+
+`message()` method returns the message of the error type object.
+
+**Returns**
+
+- `msg:string`: the message of the error type object.
+
+
 ### err = errt:new(message [, wrap [, level [, traceback]]])
 
 equivalent to the `error.new` function, but sets the error type object to the error object.

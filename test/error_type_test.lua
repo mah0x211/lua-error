@@ -85,6 +85,16 @@ function testcase.code()
     assert.equal(t:code(), 123)
 end
 
+function testcase.message()
+    -- test that return type message
+    local t = error_type.new('my.error1')
+    assert.is_nil(t:message())
+
+    -- test that add type message
+    t = error_type.new('my.error', nil, 'hello world!')
+    assert.equal(t:message(), 'hello world!')
+end
+
 function testcase.get()
     do
         local t = error_type.new('my.error')
