@@ -182,6 +182,22 @@ function testcase.cause()
         local err = error.new(v)
         assert.rawequal(error.cause(err), v)
     end
+
+    -- test that return first argument
+    assert.equal(
+        error.cause(error.message.new('error message', 'test message')), {
+            message = 'error message',
+            op = 'test message',
+        })
+    assert.equal(error.cause('foo'), 'foo')
+    assert.equal(error.cause({
+        'foo',
+    }), {
+        'foo',
+    })
+
+    -- test that returns nil if no argument
+    assert.is_nil(error.cause())
 end
 
 function testcase.unwrap()
