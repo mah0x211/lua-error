@@ -294,6 +294,21 @@ print(error.type.get('my_gced_type')) -- nil
 
 - `errt:error.type`: `error.type` object.
 
+### Accessing the properties of an `error.type` object
+
+```lua
+local error = require('error')
+local errt = error.type.new('my_error_type')
+print(errt.name) -- my_error_type
+print(errt.code) -- -1 (default)
+print(errt.message) -- nil
+```
+
+- `name:string`: the name of the `error.type` object.
+- `code:integer`: the code of the `error.type` object.
+- `message:string`: the message of the `error.type` object.
+
+
 
 ## errt = error.type.get( name )
 
@@ -305,7 +320,6 @@ local errt = error.type.new('my_error_type')
 -- get a  new error.type object
 print(error.type.get('my_error_type') == errt) -- true
 ```
-
 
 **Params**
 
@@ -336,57 +350,6 @@ print(error.type.get('my_error_type')) -- nil
 **Returns**
 
 - `ok:boolean`: `true` on success.
-
-
-## name = errt:name()
-
-returns the name of the `error.type` object.
-
-```lua
-local error = require('error')
-local errt = error.type.new('my_error_type')
-print(errt:name()) -- my_error_type
-```
-
-**Returns**
-
-- `name:string`: the name of the `error.type` object.
-
-
-## code = errt:code()
-
-returns the code of the `error.type` object.
-
-```lua
-local error = require('error')
-local errt = error.type.new('my_error_type')
-print(errt:code()) -- -1 (default)
-
-errt = error.type.new('my_error_type2', 123)
-print(errt:code()) -- 123
-```
-
-**Returns**
-
-- `code:integer`: the code of the `error.type` object.
-
-
-## msg = errt:message()
-
-returns the message of the `error.type` object.
-
-```lua
-local error = require('error')
-local errt = error.type.new('my_error_type')
-print(errt:message()) -- nil
-
-errt = error.type.new('my_error_type2', nil, 'my_error_type2 message')
-print(errt:message()) -- my_error_type2 message
-```
-
-**Returns**
-
-- `msg:string`: the message of the `error.type` object.
 
 
 ## err = errt:new( [message [, wrap [, level [, traceback]]]] )

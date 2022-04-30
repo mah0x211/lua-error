@@ -28,32 +28,31 @@ static int new_lua(lua_State *L)
     return le_new_typed_error(L, 1);
 }
 
-static int message_lua(lua_State *L)
+static int index_lua(lua_State *L)
 {
+    static const char *const fields[] = {
+        "new", "name", "message", "code", NULL,
+    };
     le_error_type_t *errt = luaL_checkudata(L, 1, LE_ERROR_TYPE_MT);
+    int idx               = luaL_checkoption(L, 2, NULL, fields);
 
-    lua_settop(L, 1);
-    lauxh_pushref(L, errt->ref_msg);
+    switch (idx) {
+    case 0:
+        lua_pushcfunction(L, new_lua);
+        break;
 
-    return 1;
-}
+    case 1:
+        lauxh_pushref(L, errt->ref_name);
+        break;
 
-static int code_lua(lua_State *L)
-{
-    le_error_type_t *errt = luaL_checkudata(L, 1, LE_ERROR_TYPE_MT);
+    case 2:
+        lauxh_pushref(L, errt->ref_msg);
+        break;
 
-    lua_settop(L, 1);
-    lua_pushinteger(L, errt->code);
-
-    return 1;
-}
-
-static int name_lua(lua_State *L)
-{
-    le_error_type_t *errt = luaL_checkudata(L, 1, LE_ERROR_TYPE_MT);
-
-    lua_settop(L, 1);
-    lauxh_pushref(L, errt->ref_name);
+    default:
+        lua_pushinteger(L, errt->code);
+        break;
+    }
 
     return 1;
 }
@@ -113,13 +112,6 @@ LUALIB_API int le_open_error_type(lua_State *L)
         {"__tostring", tostring_lua},
         {NULL,         NULL        }
     };
-    struct luaL_Reg method[] = {
-        {"name",    name_lua   },
-        {"code",    code_lua   },
-        {"message", message_lua},
-        {"new",     new_lua    },
-        {NULL,      NULL       }
-    };
     struct luaL_Reg funcs[] = {
         {"get", get_lua     },
         {"del", del_lua     },
@@ -136,12 +128,7 @@ LUALIB_API int le_open_error_type(lua_State *L)
         lauxh_pushfn2tbl(L, ptr->name, ptr->func);
     }
     // methods
-    lua_pushstring(L, "__index");
-    lua_newtable(L);
-    for (struct luaL_Reg *ptr = method; ptr->name; ptr++) {
-        lauxh_pushfn2tbl(L, ptr->name, ptr->func);
-    }
-    lua_rawset(L, -3);
+    lauxh_pushfn2tbl(L, "__index", index_lua);
     lua_pop(L, 1);
 
     // export funcs

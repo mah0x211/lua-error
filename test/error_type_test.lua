@@ -67,32 +67,32 @@ function testcase.gced()
     assert(err ~= nil)
     assert.is_nil(error_type.get('my.error'))
     local t2 = error_type.get('my.error2')
-    assert.equal(t2:name(), 'my.error2')
+    assert.equal(t2.name, 'my.error2')
 end
 
 function testcase.name()
     -- test that return type name
     local t = error_type.new('my.error')
-    assert.equal(t:name(), 'my.error')
+    assert.equal(t.name, 'my.error')
 end
 
 function testcase.code()
     -- test that return type code
     local t = error_type.new('my.error')
-    assert.equal(t:code(), -1)
+    assert.equal(t.code, -1)
 
     t = error_type.new('my.error2', 123)
-    assert.equal(t:code(), 123)
+    assert.equal(t.code, 123)
 end
 
 function testcase.message()
     -- test that return type message
     local t = error_type.new('my.error1')
-    assert.is_nil(t:message())
+    assert.is_nil(t.message)
 
     -- test that add type message
     t = error_type.new('my.error', nil, 'hello world!')
-    assert.equal(t:message(), 'hello world!')
+    assert.equal(t.message, 'hello world!')
 end
 
 function testcase.get()
@@ -136,7 +136,7 @@ function testcase.new_error()
         tostring = function(_, where, traceback, errt)
             assert.equal(t, errt)
             assert.is_nil(traceback)
-            return string.format('%s [%s] typed error', where, errt:name())
+            return string.format('%s [%s] typed error', where, errt.name)
         end,
     })
     assert.match(tostring(err),
