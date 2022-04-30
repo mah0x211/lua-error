@@ -17,7 +17,6 @@ function testcase.check_submodules()
         'type',
         'message',
         'check',
-        'errno',
     }) do
         assert.is_table(error[name])
     end

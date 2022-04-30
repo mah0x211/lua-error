@@ -271,7 +271,6 @@ static int call_lua(lua_State *L)
 
 LUALIB_API int le_open_error_type(lua_State *L);
 LUALIB_API int le_open_error_check(lua_State *L);
-LUALIB_API int le_open_error_errno(lua_State *L);
 LUALIB_API int le_open_error_message(lua_State *L);
 
 LUALIB_API int luaopen_error(lua_State *L)
@@ -320,9 +319,6 @@ LUALIB_API int luaopen_error(lua_State *L)
     lua_rawset(L, -3);
     lua_pushliteral(L, "check");
     le_open_error_check(L);
-    lua_rawset(L, -3);
-    lua_pushliteral(L, "errno");
-    le_open_error_errno(L);
     lua_rawset(L, -3);
 
     // set metatable
