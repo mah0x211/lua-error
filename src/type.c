@@ -99,8 +99,11 @@ static int get_lua(lua_State *L)
     const char *name = lauxh_checkstring(L, 1);
 
     lua_settop(L, 1);
+    if (!le_registry_get(L, name)) {
+        lua_pushnil(L);
+    }
 
-    return le_registry_get(L, name);
+    return 1;
 }
 
 LUALIB_API int le_open_error_type(lua_State *L)
