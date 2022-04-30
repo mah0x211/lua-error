@@ -20,10 +20,35 @@ function testcase.new()
 end
 
 function testcase.with_error_type()
-    local msg = message.new('hello')
-
-    -- test that  create new structured message
+    error.debug(true)
     local t = error.type.new('myerr')
-    local err = t:new(msg)
+
+    -- test that create new structured message from string message
+    local err = t:new(message.new('hello'))
     assert.match(err, '[type:myerr] hello')
+
+    -- test that create new structured message from table message
+    err = t:new(message.new({
+        'hello',
+    }))
+    assert.match(err, '[type:myerr] table: ')
+
+    -- test that create new structured message from table message that contains __tostring metamethod
+    err = t:new(message.new(setmetatable({
+        message = 'hello',
+    }, {
+        __tostring = function(self)
+            return self.message
+        end,
+    })))
+    assert.match(err, '[type:myerr] hello')
+
+    -- test that throws an error if __tostring metamethod not returned string
+    err = t:new(message.new(setmetatable({}, {
+        __tostring = function()
+        end,
+    })))
+    assert.match(assert.throws(tostring, err),
+                 '"__tostring" metamethod must return a string')
+
 end

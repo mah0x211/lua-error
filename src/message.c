@@ -33,7 +33,7 @@ static inline void tostring(lua_State *L, int idx)
 
     if (luaL_callmeta(L, idx, "__tostring")) {
         if (!lua_isstring(L, -1)) {
-            luaL_error(L, "'__tostring' must return a string");
+            luaL_error(L, "\"__tostring\" metamethod must return a string");
         }
         lua_replace(L, idx);
     } else {
