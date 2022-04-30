@@ -237,11 +237,14 @@ COMPARE:
 
 static int typeof_lua(lua_State *L)
 {
-    le_error_t *err = luaL_checkudata(L, 1, LE_ERROR_MT);
-
-    lua_settop(L, 1);
-    lauxh_pushref(L, err->ref_type);
-
+    if (lauxh_ismetatableof(L, 1, LE_ERROR_MT)) {
+        le_error_t *err = lua_touserdata(L, 1);
+        lauxh_pushref(L, err->ref_type);
+    } else if (lauxh_ismetatableof(L, 1, LE_ERROR_TYPE_MT)) {
+        lua_settop(L, 1);
+    } else {
+        lua_pushnil(L);
+    }
     return 1;
 }
 

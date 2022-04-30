@@ -257,7 +257,14 @@ function testcase.typeof()
     local t = error_type.new('my.error')
     local err = t:new('hello typed error')
 
-    -- test that return error type object associated with err
+    -- test that return error.type object associated with err
     assert.rawequal(error.typeof(err), t)
+
+    -- test that return error.type object
+    assert.rawequal(error.typeof(t), t)
+
+    -- test that return nil
+    assert.is_nil(error.typeof('foo'))
+    assert.is_nil(error.typeof())
 end
 
