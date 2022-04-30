@@ -5,18 +5,19 @@ SRCS=$(wildcard $(SRCDIR)/*.c)
 OBJS=$(SRCS:.c=.o)
 INSTALL?=install
 
-.PHONY: preprocess all install clean
+ifdef ERROR_COVERAGE
+COVFLAGS=--coverage
+endif
 
-all: preprocess $(TARGET)
+.PHONY: all install clean
+
+all: $(TARGET)
 
 %.o: %.c
-	$(CC) $(CFLAGS) $(WARNINGS) $(COVERAGE) $(CPPFLAGS) -o $@ -c $<
+	$(CC) $(CFLAGS) $(WARNINGS) $(COVFLAGS) $(CPPFLAGS) -o $@ -c $<
 
 $(TARGET): $(OBJS)
-	$(CC) -o $@ $^ $(LDFLAGS) $(LIBS) $(PLATFORM_LDFLAGS) $(COVERAGE)
-
-preprocess:
-	lua ./codegen.lua $(VARS) $(TMPL)
+	$(CC) -o $@ $^ $(LDFLAGS) $(LIBS) $(PLATFORM_LDFLAGS) $(COVFLAGS)
 
 install:
 	$(INSTALL) $(TARGET) $(LIBDIR)
