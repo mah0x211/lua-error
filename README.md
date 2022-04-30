@@ -11,151 +11,6 @@ additional features to the error module.
 luarocks install error
 ```
 
-## Usage
-
-```lua
-local error = require('error')
-local LF = '\n\n'
-
-print('-- raises an error')
-local ok, msg = pcall(error, 'raises an error')
-assert(not ok)
-print(msg, LF)
-
-print('-- create new error type object')
-local errt = error.type.new('example_error')
-print(errt, LF)
-
-print('-- create new error object')
-local msg_str = 'my new error object'
-local err1 = error.new(msg_str)
-print(err1, LF)
-
-print('-- extract a message of error')
-print(error.cause(err1), LF)
-
-print('-- create new typed error object that wraps err1')
-local msg_tbl = {
-    message = 'this typed error wraps err1',
-    tostring = function(self, where)
-        return where .. self.message
-    end,
-}
-local err2 = errt:new(msg_tbl, err1)
-print(err2, LF)
-
-print('-- get the wrapped error object')
-print(error.unwrap(err2), LF)
-
-print('-- create new error object with level and traceback arguments')
-local msg_mtbl = setmetatable({
-    message = 'my new error at stack level 2 with stack traceback',
-}, {
-    __tostring = function(self, where, traceback)
-        return where .. self.message .. '\n' .. traceback
-    end,
-})
-local function nest3(err)
-    return error.new(msg_mtbl, err, 2, true)
-end
-
-local function nest2(err)
-    local newerr = nest3(err)
-    return newerr
-end
-
-local function tail_call(err)
-    return nest2(err)
-end
-
-local function nest1(err)
-    local newerr = tail_call(err)
-    return newerr
-end
-
-local err3 = nest1(err2)
-print(err3, LF)
-
-print('-- create new error object that wraps err1, err2 and err3')
-local last_err = error.new('this is the last error', err3)
-print(last_err, LF)
-
-print('-- get the err1 by message from the last_err')
-print(error.is(last_err, msg_str), LF)
-
-print('-- get the err2 that matches error type errt')
-print(error.is(last_err, errt), LF)
-
-print('-- it returns nil if message does not matches with any of error message')
-print(error.is(last_err, 'unknown message'), LF)
-```
-
-the above code will be output as follows;
-
-```
--- raises an error
-raises an error	
-
-
--- create new error type object
-example_error: 0x7fe5005088e8	
-
-
--- create new error object
-./example.lua:15: in main chunk: my new error object	
-
-
--- extract a message of error
-my new error object	
-
-
--- create new typed error object that wraps err1
-./example.lua:28: in main chunk: this typed error wraps err1
-./example.lua:15: in main chunk: my new error object	
-
-
--- get the wrapped error object
-./example.lua:15: in main chunk: my new error object	
-
-
--- create new error object with level and traceback arguments
-./example.lua:47: in function <./example.lua:46>: my new error at stack level 2 with stack traceback
-stack traceback:
-	./example.lua:47: in function <./example.lua:46>
-	(...tail calls...)
-	./example.lua:56: in local 'nest1'
-	./example.lua:60: in main chunk
-	[C]: in ?
-./example.lua:28: in main chunk: this typed error wraps err1
-./example.lua:15: in main chunk: my new error object	
-
-
--- create new error object that wraps err1, err2 and err3
-./example.lua:64: in main chunk: this is the last error
-./example.lua:47: in function <./example.lua:46>: my new error at stack level 2 with stack traceback
-stack traceback:
-	./example.lua:47: in function <./example.lua:46>
-	(...tail calls...)
-	./example.lua:56: in local 'nest1'
-	./example.lua:60: in main chunk
-	[C]: in ?
-./example.lua:28: in main chunk: this typed error wraps err1
-./example.lua:15: in main chunk: my new error object	
-
-
--- get the err1 by message from the last_err
-./example.lua:15: in main chunk: my new error object	
-
-
--- get the err2 that matches error type errt
-./example.lua:28: in main chunk: this typed error wraps err1
-./example.lua:15: in main chunk: my new error object	
-
-
--- it returns nil if message does not matches with any of error message
-nil	
-
-```
 
 ## Use from C module
 
@@ -163,49 +18,49 @@ the `error` module installs `lua_error.h` in the lua include directory.
 
 the following API can be used to create an error object or error type object.
 
-### static inline void le_loadlib(lua_State *L, int level)
+### void le_loadlib(lua_State *L, int level)
 
 load the lua-error module.  
 **NOTE:** you must call this API at least once before using the following API.
 
 
-### static inline int le_new_error(lua_State *L, int msgidx)
+### int le_new_error(lua_State *L, int msgidx)
 
 create a new error that equivalent to `error.new(message [, wrap [, level [, traceback]]])` function.
 
 
-### static inline int le_new_type(lua_State *L, int nameidx)
+### int le_new_type(lua_State *L, int nameidx)
 
 create a new error type that equivalent to `error.type.new(name [, code [, message]])` function.
 
 
-### static inline int le_new_typed_error(lua_State *L, int typeidx)
+### int le_new_typed_error(lua_State *L, int typeidx)
 
 create a new typed error that equivalent to `<myerr>:new([msg [, wrap [, level [, traceback]]]])` method.
 
 
-### static inline int le_registry_get(lua_State *L, const char *name)
+### int le_registry_get(lua_State *L, const char *name)
 
 get a error type object from registry that equivalent to `error.type.get(name)` function.
 
 if an error type object found, its return `1`,  otherwise return `0`.
 
 
-### static inline int le_registry_del(lua_State *L, const char *name)
+### int le_registry_del(lua_State *L, const char *name)
 
 delete a error type from registry that equivalent to `error.type.del(name)` function.
 
 if an error type object has deleted, its return `1`,  otherwise return `0`.
 
 
-### static inline int le_errno2error_type(lua_State *L, int err)
+### int le_errno2error_type(lua_State *L, int err)
 
 get an error type object from `error.errno` table that equivalent to `error.errno[err]`.
 
 if an error type object found, its return `1`,  otherwise return `0`.
 
 
-### static inline int le_new_message(lua_State *L, int msgidx)
+### int le_new_message(lua_State *L, int msgidx)
 
 create a new structured message that equivalent to `error.message.new(message [, op [, code]])` function.
 
@@ -225,16 +80,40 @@ local error = require('error')
 - `error.check` submodule
 
 
-## `error` module
-
-### error(message [, level])
+## error( message [, level] )
 
 calls the `__call` metamethod, which is equivalent to Lua's built-in function `error`.
 
+```lua
+local error = require('error')
+error('error occurred')
+```
 
-### err = error.new(message [, wrap [, level [, traceback]]])
+
+## error.debug( mode )
+
+forces the `traceback` argument of the error creation function to be set to `true`.
+
+```lua
+local error = require('error')
+error.debug(true)
+```
+
+**Params**
+
+- `mode:boolean`: `true` to enable the debug mode, or `false` to disable it.
+
+
+## err = error.new( message [, wrap [, level [, traceback]]] )
 
 creates a new error object.
+
+```lua
+local error = require('error')
+-- create new error
+local err = error.new('my new error object')
+print(err)
+```
 
 **Params**
 
@@ -249,23 +128,71 @@ creates a new error object.
 - `err:error`: error object that contains the `__tostring` metamethod.
 
 
-### error.debug(mode)
+## err = error.toerror( message [, wrap [, level [, traceback]]] )
 
-sets the traceback argument is forced to be `true`.
+equivalent to the `error.new` function, but if the `message` is an `error` object, it will be returned.
+
+```lua
+local error = require('error')
+local err = error.new('my error')
+-- returns an err
+print(err == error.toerror(err)) -- true
+-- create new error
+print(err == error.toerror('my error2')) -- false
+```
+
+
+## msg = error.cause( err )
+
+if `err` is `error` object, return an error message object associated with `err`. otherwise, create an new `error.message` object from `err`.
+however, it return `nil` if `err` is `nil`.
+
+
+```lua
+local error = require('error')
+-- extract a message of error
+local msg = error.cause(error.new('my error'))
+print(msg, type(msg)) -- my error string
+msg = error.cause(error.new(error.message.new('my error')))
+print(msg, type(msg)) -- my error table
+
+-- extract a message of error.message
+local msg = error.cause(error.message.new('my error'))
+print(msg, type(msg)) -- my error string
+msg = error.cause(error.new(error.message.new('my error')))
+print(msg, type(msg)) -- my error table
+
+-- just return first argument
+msg = error.cause('my error')
+print(msg, type(msg)) -- my error string
+```
 
 **Params**
 
-- `mode:boolean`: `true` to enable the debug mode, or `false` to disable it.
+- `err:any`: error value.
+
+**Returns**
+
+- `msg:error.message`: error message.
 
 
-### err = error.toerror(message [, wrap [, level [, traceback]]])
-
-equivalent to the `error.new` function, but if the `message` is an `error` object, it will be returned as is.
-
-
-### err = error.unwrap(err)
+## err = error.unwrap( err )
 
 return a wrapped error object.
+
+```lua
+local error = require('error')
+-- create new error object
+local err1 = error.new('first error')
+local err2 = error.new('second error', err1)
+
+print(err2) -- ./example.lua:4: in main chunk: second error\n./example.lua:3: in main chunk: first error
+
+-- extract first error
+local err = error.unwrap(err2)
+print(err) -- ./example.lua:3: in main chunk: first error
+print(err == err1) -- true
+```
 
 **Params**
 
@@ -276,59 +203,95 @@ return a wrapped error object.
 - `err:error`: a wrapped error object or `nil`.
 
 
-### message = error.cause(err)
+## err = error.is( err, target )
 
-return a error message.
-
-**Params**
-
-- `err:error`: error object.
-
-**Returns**
-
-- `message:string|table`: error message.
-
-
-### err = error.is(err, target)
-
-extract the error object that **strictly matches** the `target` from the error object.  
+extract the `error` object that **strictly matches** the `target` from the `error` object.  
 the target object is converted to `uintptr_t` and compared with the error object or internal value.
 
+```lua
+local error = require('error')
+-- create error object
+local err1 = error.new('first error')
+local err2type = error.type.new('seond_error_type')
+local err2 = err2type:new('second error', err1)
+local err3 = error.new('third error', err2)
+
+-- get the err1 by message
+print(error.is(err3, 'first error')) -- ./example.lua:3: in main chunk: first error
+
+-- get the err2 by error type
+print(error.is(err3, err2type)) -- ./example.lua:6: in main chunk: [seond_error_type] second error\n./example.lua:3: in main chunk: first error
+
+-- it returns nil if message does not matches with any of error message
+print(error.is(err3, 'unknown message')) -- nil
+```
+
 **Params**
 
-- `err:error`: error object.
+- `err:error`: `error` object.
 - `target:error|error.type|string|table`: `error` object, `error.type` object, or error message.
 
 **Returns**
 
 - `err:error`: matched error object, or `nil`. (even if the `err` is not an error object or the `target` is not specified.)
 
-### errt = error.typeof(err)
 
-get the error type object associated with the error object.
+## errt = error.typeof( err )
+
+get the `error.type` object associated with the `error` object.
+
+if `err` is `error.type` object, return it. or, if `err` is `error` object, get the `error.type` object associated with the `err`. otherwise, return `nil`.
+
+```lua
+local error = require('error')
+-- create error object from errtype
+local err1 = error.new('my error')
+local errtype = error.type.new('my_error_type')
+local err2 = errtype:new('my typed error')
+
+-- get the error.type of error
+print(error.typeof(err1)) -- nil
+print(error.typeof(err2) == errtype) -- true
+print(error.typeof(errtype)) -- my_error_type: 0x004ad8c0
+print(error.typeof('hello')) -- nil
+```
 
 **Params**
 
-- `err:error`: error object.
+- `err:any`: error value.
 
 **Returns**
 
-- `errt:error.type`: error type object, or `nil`.
+- `errt:error.type`: `error.type` object, or `nil`.
 
 
-## `error.type` module
+## errt = error.type.new( name [, code [, message]] )
 
+creates a new `error.type` object.
 
-### errt = error.type.new(name [, code [, message]])
-
-creates a new error type object.  
-the created error type object will be kept in `the registry table` that cannot be accessed directly.  
+the created `error.type` object will be kept in `the registry table` that cannot be accessed directly.  
 
 **NOTE:** the registry table is set up as a weak reference table `__mode = 'v'`.
 
+```lua
+local error = require('error')
+-- create new error.type object
+local errt = error.type.new('my_error_type')
+print(error.typeof(errt)) -- my_error_type: 0x09b928e8
+
+-- error.type is registered as a weak reference
+error.type.new('my_gced_type')
+print(error.type.get('my_error_type')) -- my_error_type: 0x09b928e8
+print(error.type.get('my_gced_type')) -- my_gced_type: 0x09b92978
+
+collectgarbage('collect')
+print(error.type.get('my_error_type')) -- my_error_type: 0x09b928e8
+print(error.type.get('my_gced_type')) -- nil
+```
+
 **Params**
 
-- `name:string`: name of the error type to use for stringification.
+- `name:string`: name of the `error.type` to use for stringification.
   - length must be between `1-127` characters.
   - first character must be an `a-zA-Z` character.
   - only the following characters can be used: `a-zA-Z0-9`, `.` and `_`.
@@ -337,77 +300,129 @@ the created error type object will be kept in `the registry table` that cannot b
 
 **Returns**
 
-- `errt:error.type`: error type object.
+- `errt:error.type`: `error.type` object.
 
 
-### errt = error.type.get(name)
+## errt = error.type.get( name )
 
-get a error type object from the registry table.
+get a `error.type` object from the registry table.
+
+```lua
+local error = require('error')
+local errt = error.type.new('my_error_type')
+-- get a  new error.type object
+print(error.type.get('my_error_type') == errt) -- true
+```
+
 
 **Params**
 
-- `name:string`: name of the error type.
+- `name:string`: name of the registered `error.type` object.
 
 **Returns**
 
-- `errt:error.type`: error type object.
+- `errt:error.type`: `error.type` object.
 
 
-### ok = error.type.del(name)
+## ok = error.type.del( name )
 
-delete a error type from the registry table.
+delete a `error.type` object from the registry table.
+
+```lua
+local error = require('error')
+error.type.new('my_error_type')
+print(error.type.get('my_error_type')) -- my_error_type: 0x0f2477e0
+-- delete error.type object from registry
+print(error.type.del('my_error_type')) -- true
+print(error.type.get('my_error_type')) -- nil
+```
 
 **Params**
 
-- `name:string`: name of the error type.
+- `name:string`: name of the registered `error.type` object.
 
 **Returns**
 
 - `ok:boolean`: `true` on success.
 
 
-### name = errt:name()
+## name = errt:name()
 
-`name()` method returns the name of the error type object.
+returns the name of the `error.type` object.
 
-**Returns**
-
-- `name:string`: the name of the error type object.
-
-
-### code = errt:code()
-
-`code()` method returns the code of the error type object.
+```lua
+local error = require('error')
+local errt = error.type.new('my_error_type')
+print(errt:name()) -- my_error_type
+```
 
 **Returns**
 
-- `code:integer`: the code of the error type object.
+- `name:string`: the name of the `error.type` object.
 
 
-### msg = errt:message()
+## code = errt:code()
 
-`message()` method returns the message of the error type object.
+returns the code of the `error.type` object.
+
+```lua
+local error = require('error')
+local errt = error.type.new('my_error_type')
+print(errt:code()) -- -1 (default)
+
+errt = error.type.new('my_error_type2', 123)
+print(errt:code()) -- 123
+```
 
 **Returns**
 
-- `msg:string`: the message of the error type object.
+- `code:integer`: the code of the `error.type` object.
 
 
-### err = errt:new([message [, wrap [, level [, traceback]]]])
+## msg = errt:message()
+
+returns the message of the `error.type` object.
+
+```lua
+local error = require('error')
+local errt = error.type.new('my_error_type')
+print(errt:message()) -- nil
+
+errt = error.type.new('my_error_type2', nil, 'my_error_type2 message')
+print(errt:message()) -- my_error_type2 message
+```
+
+**Returns**
+
+- `msg:string`: the message of the `error.type` object.
+
+
+## err = errt:new( [message [, wrap [, level [, traceback]]]] )
 
 equivalent to the `error.new` function except message argument can be set to `nil`.  
-it also sets the error type object to the error object.
+it also sets the `error.type` object to the `error` object.
+
+```lua
+local error = require('error')
+local errt = error.type.new('my_error_type', nil, 'my error message')
+print(errt:new()) -- ./example.lua:3: in main chunk: [my_error_type] my error message
+print(errt:new('typed error')) -- ./example.lua:4: in main chunk: [my_error_type] my error message (typed error)
+```
 
 **Returns**
 
-- `err:error`: a new error object that holds the error type object.
+- `err:error`: a new `error` object that holds the `error.type` object.
 
 
-## `error.message` module
-
-### msg = error.message.new(message [, op [, code]])
+## msg = error.message.new( message [, op [, code]] )
 
 create a new structured message.
+
+```lua
+local error = require('error')
+local msg = error.message.new('my message', 'my operation', 'my code')
+print(msg) -- [op:my operation][code:my code] my message
+```
 
 **message structure:**
 
