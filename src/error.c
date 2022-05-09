@@ -23,6 +23,33 @@
 
 #include "lua_error.h"
 
+static int index_lua(lua_State *L)
+{
+    static const char *const fields[] = {
+        "message",
+        "type",
+        NULL,
+    };
+    le_error_t *err = luaL_checkudata(L, 1, LE_ERROR_MT);
+    int idx         = luaL_checkoption(L, 2, NULL, fields);
+
+    switch (idx) {
+    case 0:
+        lauxh_pushref(L, err->ref_msg);
+        break;
+
+    case 1:
+        lauxh_pushref(L, err->ref_type);
+        break;
+
+    default:
+        lua_pushnil(L);
+        break;
+    }
+
+    return 1;
+}
+
 static void tostring(lua_State *L, le_error_t *err)
 {
     if (err->ref_tostring != LUA_NOREF) {
@@ -278,6 +305,7 @@ LUALIB_API int luaopen_error(lua_State *L)
     struct luaL_Reg mmethod[] = {
         {"__gc",       gc_lua      },
         {"__tostring", tostring_lua},
+        {"__index",    index_lua   },
         {NULL,         NULL        }
     };
     struct luaL_Reg funcs[] = {

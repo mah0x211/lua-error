@@ -120,6 +120,19 @@ print(err)
 - `err:error`: error object that contains the `__tostring` metamethod.
 
 
+### Accessing the properties of an `error` object
+
+```lua
+local error = require('error')
+local err = error.new('my new error object')
+print(err.message)
+print(err.type)
+```
+
+- `message:error.message`: the message of the `error` object.
+- `type:error.type`: the type of the `error` object.
+
+
 ## err = error.toerror( message [, wrap [, level [, traceback]]] )
 
 equivalent to the `error.new` function, but if the `message` is an `error` object, it will be returned.
@@ -294,6 +307,7 @@ print(error.type.get('my_gced_type')) -- nil
 
 - `errt:error.type`: `error.type` object.
 
+
 ### Accessing the properties of an `error.type` object
 
 ```lua
@@ -307,7 +321,6 @@ print(errt.message) -- nil
 - `name:string`: the name of the `error.type` object.
 - `code:integer`: the code of the `error.type` object.
 - `message:string`: the message of the `error.type` object.
-
 
 
 ## errt = error.type.get( name )
