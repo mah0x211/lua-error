@@ -10,13 +10,29 @@ function testcase.new()
     assert.is_nil(msg.code)
     assert.match(tostring(msg), 'hello')
 
+    -- test that create with op
     msg = message.new('hello', 'test-op')
     assert.equal(msg.op, 'test-op')
     assert.match(tostring(msg), '[op:test-op] hello')
 
+    -- test that create with code
     msg = message.new('hello', 'test-op', 123)
     assert.equal(msg.code, 123)
     assert.match(tostring(msg), '[op:test-op][code:123] hello')
+
+    -- test that create by table
+    local tbl = {}
+    msg = message.new(tbl, 'test-op', 123)
+    assert.equal(msg.code, 123)
+    assert.match(tostring(msg), '[op:test-op][code:123] table: ')
+
+    -- test that calls tbl.__tostring metamethod
+    setmetatable(tbl, {
+        __tostring = function()
+            return '__tostring metamethod'
+        end,
+    })
+    assert.match(tostring(msg), '[op:test-op][code:123] __tostring metamethod')
 end
 
 function testcase.with_error_type()
