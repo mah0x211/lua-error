@@ -19,28 +19,21 @@ print('-- extract a message of error')
 print(error.cause(err1), LF)
 
 print('-- create new typed error object that wraps err1')
-local msg_tbl = {
-    message = 'this typed error wraps err1',
-    tostring = function(self, where)
-        return where .. self.message
-    end,
-}
-local err2 = errt:new(msg_tbl, err1)
+local err2 = errt:new('this typed error wraps err1', err1)
 print(err2, LF)
 
 print('-- get the wrapped error object')
 print(error.unwrap(err2), LF)
 
-print('-- create new error object with level and traceback arguments')
-local msg_mtbl = setmetatable({
-    message = 'my new error at stack level 2 with stack traceback',
-}, {
-    __tostring = function(self, where, traceback)
-        return where .. self.message .. '\n' .. traceback
-    end,
-})
 local function nest3(err)
-    return error.new(msg_mtbl, err, 2, true)
+    print('-- create new error object with level and traceback arguments')
+    return error.new(setmetatable({
+        message = 'my new error from __tostring metamethod',
+    }, {
+        __tostring = function(self)
+            return self.message
+        end,
+    }), err, 2, true)
 end
 
 local function nest2(err)

@@ -41,84 +41,101 @@ static int index_lua(lua_State *L)
     case 1:
         lauxh_pushref(L, err->ref_type);
         break;
-
-    default:
-        lua_pushnil(L);
-        break;
     }
 
     return 1;
 }
 
-static void tostring(lua_State *L, le_error_t *err)
+static int tostring_lua(lua_State *L)
 {
-    if (err->ref_tostring != LUA_NOREF) {
-        lauxh_pushref(L, err->ref_tostring);
-        lauxh_pushref(L, err->ref_msg);
-        lauxh_pushref(L, err->ref_where);
-        lauxh_pushref(L, err->ref_traceback);
+    le_error_t *err = luaL_checkudata(L, 1, LE_ERROR_MT);
+    int has_typemsg = 0;
+    luaL_Buffer b   = {0};
+
+    lua_settop(L, 1);
+    luaL_buffinit(L, &b);
+
+    // <where>
+    lauxh_pushref(L, err->ref_where);
+    luaL_addvalue(&b);
+
+    if (err->ref_type != LUA_NOREF) {
+        le_error_type_t *errt = NULL;
+
         lauxh_pushref(L, err->ref_type);
-        lua_call(L, 4, 1);
-    } else {
-        int top = lua_gettop(L);
+        errt = lua_touserdata(L, -1);
+        lua_pop(L, 1);
 
-        lauxh_pushref(L, err->ref_where);
-        if (err->ref_type == LUA_NOREF) {
-            lauxh_pushref(L, err->ref_msg);
-        } else {
-            const char *name      = NULL;
-            le_error_type_t *errt = NULL;
-
-            lauxh_pushref(L, err->ref_type);
-            errt = lua_touserdata(L, -1);
-            lua_pop(L, 1);
-
-            lauxh_pushref(L, errt->ref_name);
-            name = lua_tostring(L, -1);
-            lua_pop(L, 1);
-            lua_pushfstring(L, "[%s] ", name);
-            if (errt->ref_msg == LUA_NOREF) {
-                lauxh_pushref(L, err->ref_msg);
-            } else {
-                // use a type message as main message
-                lauxh_pushref(L, errt->ref_msg);
-                if (err->ref_msg != LUA_NOREF) {
-                    lua_pushliteral(L, " (");
-                    lauxh_pushref(L, err->ref_msg);
-                    lua_pushliteral(L, ")");
-                }
-            }
+        // [<type.name>]
+        luaL_addchar(&b, '[');
+        lauxh_pushref(L, errt->ref_name);
+        luaL_addvalue(&b);
+        luaL_addchar(&b, ']');
+        if (errt->ref_msg != LUA_NOREF) {
+            // [type.code]
+            luaL_addstring(&b, "[code:");
+            lua_pushinteger(L, errt->code);
+            le_tostring(L, -1);
+            luaL_addvalue(&b);
+            luaL_addstring(&b, "] ");
+            // <type.message>
+            lauxh_pushref(L, errt->ref_msg);
+            luaL_addvalue(&b);
+            has_typemsg = 1;
         }
-
-        if (err->ref_traceback != LUA_NOREF) {
-            lua_pushliteral(L, "\n");
-            lauxh_pushref(L, err->ref_traceback);
-        }
-        lua_concat(L, lua_gettop(L) - top);
     }
+
+    if (has_typemsg) {
+        // use a message as sub-message as follows:
+        //  <type.message> (<message>)
+        le_error_message_t *errm = NULL;
+
+        lauxh_pushref(L, err->ref_msg);
+        errm = lua_touserdata(L, -1);
+        lua_pop(L, 1);
+        if (errm->ref_msg != LUA_REFNIL) {
+            luaL_addstring(&b, " (");
+            lauxh_pushref(L, errm->ref_msg);
+            le_tostring(L, -1);
+            luaL_addvalue(&b);
+            luaL_addchar(&b, ')');
+        }
+    } else {
+        // <message>
+        lauxh_pushref(L, err->ref_msg);
+        if (!luaL_callmeta(L, -1, "__tostring")) {
+            luaL_error(L, "error.message has no __tostring metamethod");
+        } else if (!lua_isstring(L, -1)) {
+            luaL_error(L, "error.message.__tostring metamethod does not "
+                          "return a string");
+        }
+        luaL_addvalue(&b);
+        lua_pop(L, 1);
+    }
+
+    if (err->ref_traceback != LUA_NOREF) {
+        luaL_addchar(&b, '\n');
+        lauxh_pushref(L, err->ref_traceback);
+        luaL_addvalue(&b);
+    }
+    luaL_pushresult(&b);
 
     // convert wrapped errors to string
     if (err->ref_wrap != LUA_NOREF) {
         lua_pushliteral(L, "\n");
-        le_error_t *werr = NULL;
         lauxh_pushref(L, err->ref_wrap);
-        werr = lua_touserdata(L, -1);
-        lua_pop(L, 1);
-        tostring(L, werr);
+        if (!luaL_callmeta(L, -1, "__tostring")) {
+            luaL_error(L, "error has no __tostring metamethod");
+        } else if (!lua_isstring(L, -1)) {
+            luaL_error(L, "error.__tostring metamethod does not "
+                          "return a string");
+        }
+        lua_replace(L, -2);
     }
-}
 
-static int tostring_lua(lua_State *L)
-{
-    le_error_t *err = luaL_checkudata(L, 1, LE_ERROR_MT);
-    int nstr        = 0;
-
-    lua_settop(L, 1);
     // convert errors to string
-    tostring(L, err);
-    nstr = lua_gettop(L) - 1;
-    if (nstr > 1) {
-        lua_concat(L, nstr);
+    if (lua_gettop(L) > 2) {
+        lua_concat(L, lua_gettop(L) - 1);
     }
 
     return 1;
@@ -129,7 +146,6 @@ static int gc_lua(lua_State *L)
     le_error_t *err = lua_touserdata(L, 1);
 
     err->ref_msg       = lauxh_unref(L, err->ref_msg);
-    err->ref_tostring  = lauxh_unref(L, err->ref_tostring);
     err->ref_where     = lauxh_unref(L, err->ref_where);
     err->ref_traceback = lauxh_unref(L, err->ref_traceback);
     err->ref_wrap      = lauxh_unref(L, err->ref_wrap);
@@ -167,98 +183,120 @@ static int unwrap_lua(lua_State *L)
 
 static int cause_lua(lua_State *L)
 {
-    if (lua_gettop(L) == 0) {
-        lua_pushnil(L);
-    } else if (lauxh_ismetatableof(L, 1, LE_ERROR_MT)) {
-        lauxh_pushref(L, ((le_error_t *)lua_touserdata(L, 1))->ref_msg);
-        return 1;
-    }
+    int is_msg = 0;
+
     lua_settop(L, 1);
-    return 1;
+    if (lua_isnoneornil(L, 1)) {
+        lua_pushnil(L);
+    } else if (lauxh_isuserdataof(L, 1, LE_ERROR_MT)) {
+        lauxh_pushref(L, ((le_error_t *)lua_touserdata(L, 1))->ref_msg);
+        is_msg = 1;
+    } else {
+        is_msg = lauxh_isuserdataof(L, 1, LE_ERROR_MESSAGE_MT);
+    }
+
+    lua_pushboolean(L, is_msg);
+    return 2;
 }
 
 static int is_lua(lua_State *L)
 {
-    int top          = lua_gettop(L);
-    le_error_t *err  = NULL;
-    uintptr_t src    = 0;
-    uintptr_t target = 0;
-    void *label      = NULL;
+    le_error_t *err          = NULL;
+    le_error_message_t *errm = NULL;
+    size_t len               = 0;
+    const char *target       = NULL;
+    void *label              = &&CMP_MESSAGE;
 
-    // do nothing if first argument is not an error object
-    if (top < 2 || !lauxh_isuserdataof(L, 1, LE_ERROR_MT)) {
+    // do nothing if target is nil or first argument is not an error object
+    if (lua_isnoneornil(L, 2) || !lauxh_isuserdataof(L, 1, LE_ERROR_MT)) {
         lua_pushnil(L);
         return 1;
     }
-    err    = (le_error_t *)lua_touserdata(L, 1);
-    src    = (uintptr_t)err;
-    target = (uintptr_t)lua_topointer(L, 2);
+    lua_settop(L, 2);
+    lua_insert(L, 1);
+    err = (le_error_t *)lua_touserdata(L, -1);
 
     // check target argument
-    switch (lua_type(L, 2)) {
-    case LUA_TTABLE:
-        label = &&COMPARE_TABLE;
-        break;
-
+    switch (lua_type(L, 1)) {
     case LUA_TSTRING:
-        target = (uintptr_t)lua_tostring(L, 2);
-        label  = &&COMPARE_STRING;
+        target = lua_tolstring(L, 1, &len);
+        label  = &&CMP_STRING;
         break;
 
     case LUA_TUSERDATA:
-        if (lauxh_isuserdataof(L, 2, LE_ERROR_MT)) {
-            label = &&COMPARE;
-            break;
-        } else if (lauxh_isuserdataof(L, 2, LE_ERROR_TYPE_MT)) {
-            label = &&COMPARE_ERROR_TYPE;
-            break;
+        if (lauxh_isuserdataof(L, 1, LE_ERROR_MT)) {
+            label = &&CMP_ERROR;
+        } else if (lauxh_isuserdataof(L, 1, LE_ERROR_TYPE_MT)) {
+            // compare with error.type
+            label = &&CMP_ERROR_TYPE;
+        } else if (lauxh_isuserdataof(L, 1, LE_ERROR_MESSAGE_MT)) {
+            // compare with error.message
+            label = &&CMP_ERROR_MESSAGE;
         }
-        // fallthrough
-    default:
-        return lauxh_argerror(
-            L, 2, "string, table, error or error_type expected, got %s",
-            luaL_typename(L, 2));
+        break;
     }
-
-    lua_settop(L, 2);
-    lua_insert(L, 1);
     goto *label;
 
-COMPARE_ERROR_TYPE:
-    if (err->ref_type != LUA_NOREF) {
-        lauxh_pushref(L, err->ref_type);
-        src = (uintptr_t)lua_touserdata(L, -1);
-        lua_pop(L, 1);
-        goto COMPARE;
-    }
-
-COMPARE_STRING:
-    lauxh_pushref(L, err->ref_msg);
-    src = (uintptr_t)lua_tostring(L, -1);
-    lua_pop(L, 1);
-    goto COMPARE;
-
-COMPARE_TABLE:
-    lauxh_pushref(L, err->ref_msg);
-    src = (uintptr_t)lua_topointer(L, -1);
-    lua_pop(L, 1);
-
-COMPARE:
-    if (src == target) {
+CMP_ERROR:
+    if (lua_rawequal(L, 1, -1)) {
         return 1;
     }
+    goto UNWRAP;
+
+CMP_ERROR_TYPE:
+    lauxh_pushref(L, err->ref_type);
+    if (lua_rawequal(L, 1, -1)) {
+        lua_pop(L, 1);
+        return 1;
+    }
+    lua_pop(L, 1);
+    goto UNWRAP;
+
+CMP_ERROR_MESSAGE:
+    lauxh_pushref(L, err->ref_msg);
+    if (lua_rawequal(L, 1, -1)) {
+        lua_pop(L, 1);
+        return 1;
+    }
+    lua_pop(L, 1);
+    goto UNWRAP;
+
+CMP_MESSAGE:
+    lauxh_pushref(L, err->ref_msg);
+    errm = lua_touserdata(L, -1);
+    lauxh_pushref(L, errm->ref_msg);
+    if (lua_rawequal(L, 1, -1)) {
+        lua_pop(L, 2);
+        return 1;
+    }
+    lua_pop(L, 2);
+    goto UNWRAP;
+
+CMP_STRING:
+    lauxh_pushref(L, err->ref_msg);
+    errm = lua_touserdata(L, -1);
+    lauxh_pushref(L, errm->ref_msg);
+    if (lua_type(L, -1) == LUA_TSTRING) {
+        size_t mlen     = 0;
+        const char *msg = lua_tolstring(L, -1, &mlen);
+        if (mlen == len && strcmp(target, msg) == 0) {
+            lua_pop(L, 2);
+            return 1;
+        }
+    }
+    lua_pop(L, 2);
+
+UNWRAP:
     // check wrapped error
     if (err->ref_wrap != LUA_NOREF) {
         lauxh_pushref(L, err->ref_wrap);
         err = lua_touserdata(L, -1);
-        src = (uintptr_t)err;
-        lua_replace(L, 2);
+        lua_replace(L, -2);
         goto *label;
     }
 
     // not found
     lua_pushnil(L);
-
     return 1;
 }
 

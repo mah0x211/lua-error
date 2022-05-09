@@ -35,6 +35,12 @@
 #define LE_ERROR_MESSAGE_MT  "error.message"
 
 typedef struct {
+    int ref_msg;
+    int ref_op;
+    lua_Integer code;
+} le_error_message_t;
+
+typedef struct {
     int ref_name;
     int ref_msg;
     lua_Integer code;
@@ -43,7 +49,6 @@ typedef struct {
 typedef struct {
     // runtime error
     int ref_msg;
-    int ref_tostring;
     int ref_where;
     int ref_traceback;
     int ref_wrap;
@@ -116,6 +121,47 @@ static inline int le_isdebug(lua_State *L)
 }
 
 /**
+ * create a new structured message that equivalent to the following code;
+ *
+ *  error.message.new(message [, op [, code]])
+ *
+ * push all arguments (including nil) onto the stack and call the API with
+ * the msg index.
+ * the last argument must be placed at the top of the stack.
+ * this function removes all arguments from the stack.
+ */
+static inline int le_new_message_ex(lua_State *L, int msgidx, int default_code)
+{
+    int idx = (msgidx < 0) ? lua_gettop(L) + msgidx + 1 : msgidx;
+    le_error_message_t *errm = NULL;
+    const char *op           = NULL;
+    lua_Integer code         = default_code;
+
+    luaL_checkany(L, idx);
+    op   = lauxh_optstring(L, idx + 1, NULL);
+    code = lauxh_optinteger(L, idx + 2, code);
+
+    // create message
+    errm  = lua_newuserdata(L, sizeof(le_error_message_t));
+    *errm = (le_error_message_t){
+        .ref_msg = LUA_NOREF,
+        .ref_op  = LUA_NOREF,
+        .code    = code,
+    };
+    lauxh_setmetatable(L, LE_ERROR_MESSAGE_MT);
+    errm->ref_msg = lauxh_refat(L, idx);
+    if (op) {
+        errm->ref_op = lauxh_refat(L, idx + 1);
+    }
+    // remove all arguments
+    lua_replace(L, idx);
+    lua_settop(L, idx);
+
+    return 1;
+}
+#define le_new_message(L, msgidx) le_new_message_ex(L, msgidx, -1)
+
+/**
  * create a new error that equivalent to the following code;
  *
  *  error.new(msg [, wrap [, level [, traceback]]])
@@ -125,7 +171,7 @@ static inline int le_isdebug(lua_State *L)
  * the last argument must be placed at the top of the stack.
  * this function removes all arguments from the stack.
  */
-static inline int le_new_error(lua_State *L, int msgidx)
+static inline int le_new_error_ex(lua_State *L, int msgidx, int default_code)
 {
     int idx          = (msgidx < 0) ? lua_gettop(L) + msgidx + 1 : msgidx;
     le_error_t *err  = NULL;
@@ -136,49 +182,25 @@ static inline int le_new_error(lua_State *L, int msgidx)
     if (wrap) {
         lua_settop(L, idx + 1);
     }
-    if (lua_isnoneornil(L, idx)) {
-        goto INVALID_ARG;
-    }
-    err                = lua_newuserdata(L, sizeof(le_error_t));
-    err->ref_tostring  = LUA_NOREF;
-    err->ref_traceback = LUA_NOREF;
-    err->ref_wrap      = LUA_NOREF;
-    err->ref_type      = LUA_NOREF;
 
     // check message argument
-    switch (lua_type(L, idx)) {
-    case LUA_TTABLE:
-        lua_pushliteral(L, "tostring");
-        lua_rawget(L, idx);
-        if (lua_isfunction(L, -1)) {
-            // get tostring function
-            err->ref_tostring = lauxh_ref(L);
-        } else {
-            // get __tostring metamethod
-            lua_pop(L, 1);
-            if (lua_getmetatable(L, idx)) {
-                lua_pushliteral(L, "__tostring");
-                lua_rawget(L, -2);
-            }
-            if (!lua_isfunction(L, -1)) {
-                return luaL_argerror(
-                    L, idx,
-                    "tostring function or __tostring metamethod "
-                    "does not exist in table");
-            }
-            err->ref_tostring = lauxh_ref(L);
-            lua_pop(L, 1);
-        }
-    case LUA_TSTRING:
-        break;
-
-    default:
-INVALID_ARG:
-        return lauxh_argerror(
-            L, idx, "argument must be string or table expected, got %s",
-            lua_typename(L, lua_type(L, idx)));
+    luaL_checkany(L, idx);
+    if (!lauxh_ismetatableof(L, idx, LE_ERROR_MESSAGE_MT)) {
+        // convert message to error.message
+        lua_pushvalue(L, idx);
+        le_new_message_ex(L, -1, default_code);
+        lua_replace(L, idx);
     }
 
+    err  = lua_newuserdata(L, sizeof(le_error_t));
+    *err = (le_error_t){
+        .ref_msg       = LUA_NOREF,
+        .ref_where     = LUA_NOREF,
+        .ref_traceback = LUA_NOREF,
+        .ref_wrap      = LUA_NOREF,
+        .ref_type      = LUA_NOREF,
+    };
+    lauxh_setmetatable(L, LE_ERROR_MT);
     err->ref_msg = lauxh_refat(L, idx);
     // with wrap argument
     if (wrap) {
@@ -190,14 +212,13 @@ INVALID_ARG:
         lauxh_traceback(NULL, L, NULL, level);
         err->ref_traceback = lauxh_ref(L);
     }
-    // create new error
-    lauxh_setmetatable(L, LE_ERROR_MT);
     // remove all arguments
     lua_replace(L, idx);
     lua_settop(L, idx);
 
     return 1;
 }
+#define le_new_error(L, msgidx) le_new_error_ex(L, msgidx, -1)
 
 /**
  * error type registry
@@ -344,18 +365,15 @@ static inline int le_new_typed_error(lua_State *L, int typeidx)
     int nomsg             = lua_isnoneornil(L, idx + 1);
     le_error_t *err       = NULL;
 
-    if (nomsg && errt->ref_msg != LUA_NOREF) {
-        lauxh_pushref(L, errt->ref_msg);
+    if (nomsg) {
+        lua_pushnil(L);
         if ((idx + 1) < lua_gettop(L)) {
             lua_replace(L, (idx + 1));
         }
     }
-    le_new_error(L, idx + 1);
+    le_new_error_ex(L, idx + 1, errt->code);
     err           = lua_touserdata(L, -1);
     err->ref_type = lauxh_refat(L, idx);
-    if (nomsg) {
-        err->ref_msg = lauxh_unref(L, err->ref_msg);
-    }
     // remove all arguments
     lua_replace(L, idx);
     lua_settop(L, idx);
@@ -400,50 +418,6 @@ static inline void le_tostring(lua_State *L, int idx)
         }
         lua_replace(L, idx);
     }
-}
-
-/**
- * create a new structured message that equivalent to the following code;
- *
- *  error.message.new(message [, op [, code]])
- *
- * push all arguments (including nil) onto the stack and call the API with
- * the msg index.
- * the last argument must be placed at the top of the stack.
- * this function removes all arguments from the stack.
- *
- * the message structure is as follows:
- *  setmetatable({
- *      message = msg,
- *      op = op,
- *      code = code
- *  }, LE_ERROR_MESSAGE_MT)
- */
-static inline int le_new_message(lua_State *L, int msgidx)
-{
-    msgidx = (msgidx < 0) ? lua_gettop(L) + msgidx + 1 : msgidx;
-    lua_settop(L, msgidx + 3);
-    lua_newtable(L);
-
-#define le_pushvalue2table(idx, k)                                             \
- do {                                                                          \
-  if (!lua_isnoneornil(L, (idx))) {                                            \
-   lua_pushvalue(L, (idx));                                                    \
-   lua_setfield(L, -2, (k));                                                   \
-  }                                                                            \
- } while (0)
-
-    le_pushvalue2table(msgidx, "message");
-    le_pushvalue2table(msgidx + 1, "op");
-    le_pushvalue2table(msgidx + 2, "code");
-    lauxh_setmetatable(L, LE_ERROR_MESSAGE_MT);
-    // remove all arguments
-    lua_replace(L, msgidx);
-    lua_settop(L, msgidx);
-
-#undef le_pushvalue2table
-
-    return 1;
 }
 
 #endif

@@ -109,8 +109,8 @@ print(err)
 
 **Params**
 
-- `message:string|table`: string message, or structured message as table.  
-  - `structured message` must has a function in the `tostring` field or `__tostring` metamethod field.
+- `message:error.message|any`: a message value.  
+  - if it is not `error.message`, create `error.message` with that message.
 - `wrap:error`: `nil` or other error objects to be included in the new error object.
 - `level:integer`: specifies how to get the error position. (default: `1`)
 - `traceback:boolean`: get the stack traceback and keep it in the error object. (default: `false`)
@@ -147,29 +147,30 @@ print(err == error.toerror('my error2')) -- false
 ```
 
 
-## msg = error.cause( err )
+## msg, is_msg = error.cause( err )
 
-if `err` is `error` object, return an error message object associated with `err`. otherwise, create an new `error.message` object from `err`.
-however, it return `nil` if `err` is `nil`.
+if `err` is `error` object, return an `error.message` object associated with `err`. otherwise, return first argument.
 
 
 ```lua
 local error = require('error')
--- extract a message of error
-local msg = error.cause(error.new('my error'))
-print(msg, type(msg)) -- my error string
-msg = error.cause(error.new(error.message.new('my error')))
-print(msg, type(msg)) -- my error table
-
--- extract a message of error.message
-local msg = error.cause(error.message.new('my error'))
-print(msg, type(msg)) -- my error string
-msg = error.cause(error.new(error.message.new('my error')))
-print(msg, type(msg)) -- my error table
 
 -- just return first argument
-msg = error.cause('my error')
-print(msg, type(msg)) -- my error string
+local msg = 'my error'
+local err = msg
+local cause = error.cause(err)
+print(cause, type(cause), cause == msg) -- my error string true
+
+-- get a error.message of error
+msg = 'my error'
+err = error.new('my error')
+cause = error.cause(err)
+print(cause, type(cause), cause == msg) -- my error userdata false
+
+msg = error.message.new('my error')
+err = error.new(msg)
+cause = error.cause(err)
+print(cause, type(cause), cause == msg) -- my error userdata true
 ```
 
 **Params**
@@ -178,7 +179,8 @@ print(msg, type(msg)) -- my error string
 
 **Returns**
 
-- `msg:error.message`: error message.
+- `msg:any`: an `error.message` object associated with `err`, or an `err` argument.
+- `is_msg:boolean`: `true` if the returned `msg` is `error.message`.
 
 
 ## err = error.unwrap( err )
@@ -191,11 +193,11 @@ local error = require('error')
 local err1 = error.new('first error')
 local err2 = error.new('second error', err1)
 
-print(err2) -- ./example.lua:4: in main chunk: second error\n./example.lua:3: in main chunk: first error
+print(err2) -- ./example.lua:4: in main chunk: [code:-1] second error\n./example.lua:3: in main chunk: [code:-1] first error
 
 -- extract first error
 local err = error.unwrap(err2)
-print(err) -- ./example.lua:3: in main chunk: first error
+print(err) -- ./example.lua:3: in main chunk: [code:-1] first error
 print(err == err1) -- true
 ```
 
@@ -222,10 +224,10 @@ local err2 = err2type:new('second error', err1)
 local err3 = error.new('third error', err2)
 
 -- get the err1 by message
-print(error.is(err3, 'first error')) -- ./example.lua:3: in main chunk: first error
+print(error.is(err3, 'first error')) -- ./example.lua:3: in main chunk: [code:-1] first error
 
 -- get the err2 by error type
-print(error.is(err3, err2type)) -- ./example.lua:6: in main chunk: [seond_error_type] second error\n./example.lua:3: in main chunk: first error
+print(error.is(err3, err2type)) -- ./example.lua:6: in main chunk: [seond_error_type][code:-1] second error\n./example.lua:3: in main chunk: [code:-1] first error
 
 -- it returns nil if message does not matches with any of error message
 print(error.is(err3, 'unknown message')) -- nil
@@ -301,7 +303,7 @@ print(error.type.get('my_gced_type')) -- nil
   - first character must be an `a-zA-Z` character.
   - only the following characters can be used: `a-zA-Z0-9`, `.` and `_`.
 - `code:integer`: error code. (default: `-1`).
-- `message:string`: error message.
+- `message:any`: error message.
 
 **Returns**
 
@@ -330,7 +332,7 @@ get a `error.type` object from the registry table.
 ```lua
 local error = require('error')
 local errt = error.type.new('my_error_type')
--- get a  new error.type object
+-- get a new error.type object
 print(error.type.get('my_error_type') == errt) -- true
 ```
 
@@ -373,8 +375,8 @@ it also sets the `error.type` object to the `error` object.
 ```lua
 local error = require('error')
 local errt = error.type.new('my_error_type', nil, 'my error message')
-print(errt:new()) -- ./example.lua:3: in main chunk: [my_error_type] my error message
-print(errt:new('typed error')) -- ./example.lua:4: in main chunk: [my_error_type] my error message (typed error)
+print(errt:new()) -- ./example.lua:3: in main chunk: [my_error_type][code:-1] my error message
+print(errt:new('typed error')) -- ./example.lua:4: in main chunk: [my_error_type][code:-1] my error message (typed error)
 ```
 
 **Returns**
@@ -388,51 +390,38 @@ create a new structured message.
 
 ```lua
 local error = require('error')
-local msg = error.message.new('my message', 'my operation', 'my code')
-print(msg) -- [op:my operation][code:my code] my message
+local msg = error.message.new('my message', 'my operation', 123)
+print(msg) -- [code:123][op:my operation] my message
 ```
 
-**message structure:**
+**Params**
+
+- `message:any`: error message.
+- `op:string`: a string
+- `code:integer`: error code. (default: `-1`).
+
+**Returns**
+
+- `msg:error.message`: a `error.message` object.
+
+**NOTE**
+
+if a `message` has the `__tostring` metamethod, that method called during string conversion.
+
+
+### Accessing the properties of an `error.message` object
 
 ```lua
-setmetatable({
-    message = message,
-    op = op,
-    code = code
-}, LE_ERROR_MESSAGE_MT)
+local error = require('error')
+local msg = error.message.new('my error message', 'my operation', 123)
+print(msg.message) -- my_error_type
+print(msg.op) -- my operation
+print(msg.code) -- 123
 ```
 
-the `__tostring` metamethod of the `LE_ERROR_MESSAGE_MT` metatable is equivalent to the following code.
-
-```lua
-local function __tostring(self, where, traceback, errt)
-    local result = {
-        where,
-    }
-
-    if errt then
-        result[#result + 1] = string.format('[type:%s]', errt:name())
-    end
-
-    if self.op then
-        result[#result + 1] = string.format('[op:%s]', tostring(self.op))
-    end
-
-    if self.code then
-        result[#result + 1] = string.format('[code:%s]', tostring(self.code))
-    end
-
-    result[#result + 1] = ' '
-    result[#result + 1] = tostring(self.message)
-
-    if traceback then
-        result[#result + 1] = '\n'
-        result[#result + 1] = tostring(traceback)
-    end
-
-    return table.concat(result)
-end
-```
+- `name:string`: the name of the `error.type` object.
+- `code:integer`: the code of the `error.type` object.
+- `message:string`: the message of the `error.type` object.
 
 
 ## `error.check` module
