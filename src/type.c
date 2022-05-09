@@ -110,6 +110,7 @@ LUALIB_API int le_open_error_type(lua_State *L)
     struct luaL_Reg mmethod[] = {
         {"__gc",       gc_lua      },
         {"__tostring", tostring_lua},
+        {"__index",    index_lua   },
         {NULL,         NULL        }
     };
     struct luaL_Reg funcs[] = {
@@ -127,8 +128,6 @@ LUALIB_API int le_open_error_type(lua_State *L)
     for (struct luaL_Reg *ptr = mmethod; ptr->name; ptr++) {
         lauxh_pushfn2tbl(L, ptr->name, ptr->func);
     }
-    // methods
-    lauxh_pushfn2tbl(L, "__index", index_lua);
     lua_pop(L, 1);
 
     // export funcs

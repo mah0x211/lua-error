@@ -363,6 +363,45 @@ static inline int le_new_typed_error(lua_State *L, int typeidx)
     return 1;
 }
 
+static inline void le_tostring(lua_State *L, int idx)
+{
+    int type = lua_type(L, idx);
+
+    if (idx < 0) {
+        idx = lua_gettop(L) + idx + 1;
+    }
+
+    if (luaL_callmeta(L, idx, "__tostring")) {
+        if (!lua_isstring(L, -1)) {
+            luaL_error(L, "\"__tostring\" metamethod must return a string");
+        }
+    } else if (type != LUA_TSTRING) {
+        switch (type) {
+        case LUA_TNONE:
+        case LUA_TNIL:
+            lua_pushstring(L, "nil");
+            break;
+
+        case LUA_TNUMBER:
+        case LUA_TBOOLEAN:
+            lua_pushstring(L, lua_tostring(L, idx));
+            break;
+
+        // case LUA_TTHREAD:
+        // case LUA_TLIGHTUSERDATA:
+        // case LUA_TTABLE:
+        // case LUA_TFUNCTION:
+        // case LUA_TUSERDATA:
+        // case LUA_TTHREAD:
+        default:
+            lua_pushfstring(L, "%s: %p", lua_typename(L, type),
+                            lua_topointer(L, idx));
+            break;
+        }
+        lua_replace(L, idx);
+    }
+}
+
 /**
  * create a new structured message that equivalent to the following code;
  *

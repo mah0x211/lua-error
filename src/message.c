@@ -74,7 +74,7 @@ static int tostring_lua(lua_State *L)
 
     // where
     if (!lua_isnil(L, 2)) {
-        tostring(L, 2);
+        le_tostring(L, 2);
         lua_pushvalue(L, 2);
         luaL_addvalue(&b);
     }
@@ -98,7 +98,7 @@ static int tostring_lua(lua_State *L)
     } else {
         lua_pushliteral(L, "[op:");
         luaL_addvalue(&b);
-        tostring(L, -1);
+        le_tostring(L, -1);
         luaL_addvalue(&b);
         luaL_addchar(&b, ']');
         add_space = 1;
@@ -111,7 +111,7 @@ static int tostring_lua(lua_State *L)
     } else {
         lua_pushliteral(L, "[code:");
         luaL_addvalue(&b);
-        tostring(L, -1);
+        le_tostring(L, -1);
         luaL_addvalue(&b);
         luaL_addchar(&b, ']');
         add_space = 1;
@@ -122,13 +122,13 @@ static int tostring_lua(lua_State *L)
         luaL_addchar(&b, ' ');
     }
     lua_getfield(L, 1, "message");
-    tostring(L, -1);
+    le_tostring(L, -1);
     luaL_addvalue(&b);
 
     // traceback
     if (!lua_isnil(L, 3)) {
         luaL_addchar(&b, '\n');
-        tostring(L, 3);
+        le_tostring(L, 3);
         lua_pushvalue(L, 3);
         luaL_addvalue(&b);
     }
