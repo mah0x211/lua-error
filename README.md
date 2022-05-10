@@ -419,9 +419,9 @@ print(msg.op) -- my operation
 print(msg.code) -- 123
 ```
 
-- `name:string`: the name of the `error.type` object.
-- `code:integer`: the code of the `error.type` object.
-- `message:string`: the message of the `error.type` object.
+- `message:string`: the message of the `error.message` object.
+- `op:string`: the op of the `error.message` object.
+- `code:integer`: the code of the `error.message` object.
 
 
 ## `error.check` module
