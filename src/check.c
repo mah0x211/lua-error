@@ -291,8 +291,8 @@ static int boolean_lua(lua_State *L)
 
 static int noneornil_lua(lua_State *L)
 {
-    if (lua_gettop(L)) {
-        checktype_ex(L, LUA_TNIL, "none or nil");
+    if (!lua_isnoneornil(L, 1)) {
+        argerror(L, "none or nil", typename(L, lua_type(L, 1)));
     }
     return 0;
 }

@@ -62,22 +62,12 @@ function testcase.new()
     err = error.new('hello error', nil, nil, true)
     assert.match(tostring(err), 'stack traceback:.+', false)
 
-    -- test that create new error with table that contains tostring function
-    err = error.new({
-        err = 'hello error',
-        tostring = function(self, where)
-            return where .. self.err .. ' from tostring'
-        end,
-    })
-    assert.match(tostring(err), 'error_test%.lua.+ hello error from tostring',
-                 false)
-
     -- test that create new error with table that contains __tostring metamethod
     err = error.new(setmetatable({
         err = 'hello error',
     }, {
-        __tostring = function(self, where)
-            return where .. self.err .. ' from __tostring'
+        __tostring = function(self)
+            return self.err .. ' from __tostring'
         end,
     }))
     assert.match(tostring(err), 'error_test%.lua.+ hello error from __tostring',
@@ -88,26 +78,7 @@ function testcase.new()
         -- no message
         {
             arg = {},
-            match = '#1 .+argument must be string or table expected, got no value',
-        },
-        -- invalid message
-        {
-            arg = {
-                true,
-            },
-            match = '#1 .+argument must be string or table expected, got boolean',
-        },
-        {
-            arg = {
-                1,
-            },
-            match = '#1 .+argument must be string or table expected, got number',
-        },
-        {
-            arg = {
-                {},
-            },
-            match = '#1 .+tostring function or __tostring metamethod does not exist in table',
+            match = '#1 .+value expected',
         },
         -- invalid wrap argument
         {
@@ -160,6 +131,40 @@ function testcase.new()
     end
 end
 
+function testcase.properties()
+    -- test that accessing properties
+    local err = error.new('hello error')
+    local msg = assert(err.message)
+    assert.match(tostring(msg), '[code:-1] hello error')
+    assert.is_nil(err.type)
+
+    -- test that accessing unknown property
+    err = assert.throws(function()
+        local _ = err.unknown
+    end)
+    assert.match(err, 'invalid.+unknown', false)
+end
+
+function testcase.tostring()
+    -- test that string conversion
+    local err = error.new('hello error')
+    assert.match(err, 'error_test%.lua.+ %[code:%-1] hello error', false)
+
+    -- test that convert with wrapped error
+    local err2 = error.new('world error', err)
+    assert.match(err2, 'error_test%.lua.+ %[code:%-1] hello error', false)
+    assert.match(err2, 'error_test%.lua.+ %[code:%-1] world error', false)
+
+    -- test that throws an error if __tostring metamethod not returns a string
+    err = error.new(setmetatable({}, {
+        __tostring = function()
+            return true
+        end,
+    }))
+    err = assert.throws(tostring, err)
+    assert.match(err, 'metamethod must return a string')
+end
+
 function testcase.cause()
     for _, v in ipairs({
         'hello error',
@@ -179,19 +184,26 @@ function testcase.cause()
     }) do
         -- test that return the data contained in the error
         local err = error.new(v)
-        assert.rawequal(error.cause(err), v)
+        local msg, is_msg = error.cause(err)
+        assert.is_true(is_msg)
+        assert.equal(msg.message, v)
     end
 
     -- test that return first argument
-    assert.equal(
-        error.cause(error.message.new('error message', 'test message')), {
-            message = 'error message',
-            op = 'test message',
-        })
-    assert.equal(error.cause('foo'), 'foo')
-    assert.equal(error.cause({
+    local msg = error.message.new('error message', 'test message')
+    local cmsg, is_msg = error.cause(msg)
+    assert.is_true(is_msg)
+    assert.equal(cmsg, msg)
+
+    cmsg, is_msg = error.cause('foo')
+    assert.is_false(is_msg)
+    assert.equal(cmsg, 'foo')
+
+    cmsg, is_msg = error.cause({
         'foo',
-    }), {
+    })
+    assert.is_false(is_msg)
+    assert.equal(cmsg, {
         'foo',
     })
 
@@ -203,23 +215,17 @@ function testcase.unwrap()
     local err
     for _, v in ipairs({
         'hello error',
-        {
-            err = 'hello error',
-            tostring = function(self, where)
-                return where .. self.err .. ' from tostring'
-            end,
-        },
         setmetatable({
             err = 'hello error',
         }, {
-            __tostring = function(self, where)
-                return (where or '') .. self.err .. ' from __tostring'
+            __tostring = function(self)
+                return self.err .. ' from __tostring'
             end,
         }),
     }) do
         -- test that create new error that wraps another error
         local newerr = error.new(v, err)
-        assert.equal(error.cause(newerr), v)
+        assert.equal(error.cause(newerr).message, v)
 
         -- test that return wrapped error
         assert.equal(error.unwrap(newerr), err)
@@ -259,6 +265,9 @@ function testcase.is()
     assert.rawequal(error.is(err, obj), err_obj)
     assert.rawequal(error.is(err, err_obj), err_obj)
 
+    -- test that return a nil if no match
+    assert.is_nil(error.is(err, 'foo'))
+
     -- test that return nil if no arguments
     assert.is_nil(error.is())
 
@@ -267,12 +276,6 @@ function testcase.is()
 
     -- test that return nil if no second argument
     assert.is_nil(error.is(err))
-
-    -- test that throws an error if second argument is invalid
-    err = assert.throws(function()
-        error.is(err, 12.34)
-    end)
-    assert.match(err, '#2 .+string, table, error or error_type expected', false)
 end
 
 function testcase.toerror()

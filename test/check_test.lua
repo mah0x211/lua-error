@@ -3,6 +3,16 @@ local error_check = require('error').check
 
 function testcase.check()
     for fn, v in pairs({
+        -- noneornil
+        [error_check.noneornil] = {
+            valid = {},
+            invalid = {
+                {
+                    arg = 'foo',
+                    match = 'none or nil expected, got string',
+                },
+            },
+        },
         -- file
         [error_check.file] = {
             valid = {

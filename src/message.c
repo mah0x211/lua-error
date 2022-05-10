@@ -23,119 +23,79 @@
 
 #include "lua_error.h"
 
-static inline void tostring(lua_State *L, int idx)
+static int index_lua(lua_State *L)
 {
-    int type = lua_type(L, idx);
+    static const char *const fields[] = {
+        "message",
+        "op",
+        "code",
+        NULL,
+    };
+    le_error_message_t *errm = luaL_checkudata(L, 1, LE_ERROR_MESSAGE_MT);
+    int idx                  = luaL_checkoption(L, 2, NULL, fields);
 
-    if (idx < 0) {
-        idx = lua_gettop(L) + idx + 1;
+    switch (idx) {
+    case 0:
+        lauxh_pushref(L, errm->ref_msg);
+        break;
+
+    case 1:
+        lauxh_pushref(L, errm->ref_op);
+        break;
+
+    default:
+        lua_pushinteger(L, errm->code);
+        break;
     }
 
-    if (luaL_callmeta(L, idx, "__tostring")) {
-        if (!lua_isstring(L, -1)) {
-            luaL_error(L, "\"__tostring\" metamethod must return a string");
-        }
-        lua_replace(L, idx);
-    } else {
-        switch (type) {
-        case LUA_TSTRING:
-            break;
-
-        case LUA_TNIL:
-        case LUA_TNUMBER:
-        case LUA_TBOOLEAN:
-            lua_pushstring(L, lua_tostring(L, idx));
-            lua_replace(L, idx);
-            break;
-
-        // case LUA_TTHREAD:
-        // case LUA_TLIGHTUSERDATA:
-        // case LUA_TTABLE:
-        // case LUA_TFUNCTION:
-        // case LUA_TUSERDATA:
-        // case LUA_TTHREAD:
-        default:
-            lua_pushfstring(L, "%s: %p", lua_typename(L, type),
-                            lua_topointer(L, idx));
-            lua_replace(L, idx);
-            break;
-        }
-    }
+    return 1;
 }
 
 //  tostring(self [, where [, traceback [, type]]])
 static int tostring_lua(lua_State *L)
 {
-    int add_space = 0;
-    luaL_Buffer b;
+    le_error_message_t *errm = luaL_checkudata(L, 1, LE_ERROR_MESSAGE_MT);
+    luaL_Buffer b            = {0};
 
-    lua_settop(L, 4);
+    lua_settop(L, 1);
     luaL_buffinit(L, &b);
 
-    // where
-    if (!lua_isnil(L, 2)) {
-        tostring(L, 2);
-        lua_pushvalue(L, 2);
-        luaL_addvalue(&b);
-    }
-
-    // type
-    if (!lua_isnil(L, 4)) {
-        le_error_type_t *t = luaL_checkudata(L, 4, LE_ERROR_TYPE_MT);
-        // tostring as '[<type.name>] '
-        lua_pushliteral(L, "[type:");
-        luaL_addvalue(&b);
-        lauxh_pushref(L, t->ref_name);
-        luaL_addvalue(&b);
-        luaL_addchar(&b, ']');
-        add_space = 1;
-    }
+    // add '<code>'
+    lua_pushliteral(L, "[code:");
+    luaL_addvalue(&b);
+    lua_pushinteger(L, errm->code);
+    le_tostring(L, -1);
+    luaL_addvalue(&b);
+    luaL_addchar(&b, ']');
 
     // add '<op>'
-    lua_getfield(L, 1, "op");
-    if (lua_isnil(L, -1)) {
-        lua_pop(L, 1);
-    } else {
+    if (errm->ref_op != LUA_NOREF) {
         lua_pushliteral(L, "[op:");
         luaL_addvalue(&b);
-        tostring(L, -1);
+        lauxh_pushref(L, errm->ref_op);
         luaL_addvalue(&b);
         luaL_addchar(&b, ']');
-        add_space = 1;
-    }
-
-    // add '<code>'
-    lua_getfield(L, 1, "code");
-    if (lua_isnil(L, -1)) {
-        lua_pop(L, 1);
-    } else {
-        lua_pushliteral(L, "[code:");
-        luaL_addvalue(&b);
-        tostring(L, -1);
-        luaL_addvalue(&b);
-        luaL_addchar(&b, ']');
-        add_space = 1;
     }
 
     // add '<message>'
-    if (add_space) {
-        luaL_addchar(&b, ' ');
-    }
-    lua_getfield(L, 1, "message");
-    tostring(L, -1);
+    luaL_addchar(&b, ' ');
+    lauxh_pushref(L, errm->ref_msg);
+    le_tostring(L, -1);
     luaL_addvalue(&b);
-
-    // traceback
-    if (!lua_isnil(L, 3)) {
-        luaL_addchar(&b, '\n');
-        tostring(L, 3);
-        lua_pushvalue(L, 3);
-        luaL_addvalue(&b);
-    }
 
     luaL_pushresult(&b);
 
     return 1;
+}
+
+static int gc_lua(lua_State *L)
+{
+    le_error_message_t *errm = luaL_checkudata(L, 1, LE_ERROR_MESSAGE_MT);
+
+    errm->ref_msg = lauxh_unref(L, errm->ref_msg);
+    errm->ref_op  = lauxh_unref(L, errm->ref_op);
+
+    return 0;
 }
 
 static int new_lua(lua_State *L)
@@ -147,11 +107,9 @@ LUALIB_API int le_open_error_message(lua_State *L)
 {
     struct luaL_Reg mmethod[] = {
         {"__tostring", tostring_lua},
+        {"__gc",       gc_lua      },
+        {"__index",    index_lua   },
         {NULL,         NULL        }
-    };
-    struct luaL_Reg funcs[] = {
-        {"new", new_lua},
-        {NULL,  NULL   }
     };
 
     // create metatable
@@ -166,9 +124,7 @@ LUALIB_API int le_open_error_message(lua_State *L)
 
     // export funcs
     lua_newtable(L);
-    for (struct luaL_Reg *ptr = funcs; ptr->name; ptr++) {
-        lauxh_pushfn2tbl(L, ptr->name, ptr->func);
-    }
+    lauxh_pushfn2tbl(L, "new", new_lua);
 
     return 1;
 }

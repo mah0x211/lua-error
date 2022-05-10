@@ -7,16 +7,36 @@ function testcase.new()
     local msg = message.new('hello')
     assert.equal(msg.message, 'hello')
     assert.is_nil(msg.op)
-    assert.is_nil(msg.code)
-    assert.match(tostring(msg), 'hello')
+    assert.equal(msg.code, -1)
+    assert.match(tostring(msg), '[code:-1] hello')
 
+    -- test that create with op
     msg = message.new('hello', 'test-op')
     assert.equal(msg.op, 'test-op')
-    assert.match(tostring(msg), '[op:test-op] hello')
+    assert.match(tostring(msg), '[code:-1][op:test-op] hello')
 
+    -- test that create with code
     msg = message.new('hello', 'test-op', 123)
     assert.equal(msg.code, 123)
-    assert.match(tostring(msg), '[op:test-op][code:123] hello')
+    assert.match(tostring(msg), '[code:123][op:test-op] hello')
+
+    -- test that create by table
+    local tbl = {}
+    msg = message.new(tbl, 'test-op', 123)
+    assert.equal(msg.code, 123)
+    assert.match(tostring(msg), '[code:123][op:test-op] table: ')
+
+    -- test that calls tbl.__tostring metamethod
+    setmetatable(tbl, {
+        __tostring = function()
+            return '__tostring metamethod'
+        end,
+    })
+    assert.match(tostring(msg), '[code:123][op:test-op] __tostring metamethod')
+
+    -- test that throws an error if no argument
+    local err = assert.throws(message.new)
+    assert.match(err, 'value expected')
 end
 
 function testcase.with_error_type()
@@ -25,13 +45,13 @@ function testcase.with_error_type()
 
     -- test that create new structured message from string message
     local err = t:new(message.new('hello'))
-    assert.match(err, '[type:myerr] hello')
+    assert.match(err, '[myerr][code:-1] hello')
 
     -- test that create new structured message from table message
     err = t:new(message.new({
         'hello',
     }))
-    assert.match(err, '[type:myerr] table: ')
+    assert.match(err, '[myerr][code:-1] table: ')
 
     -- test that create new structured message from table message that contains __tostring metamethod
     err = t:new(message.new(setmetatable({
@@ -41,7 +61,7 @@ function testcase.with_error_type()
             return self.message
         end,
     })))
-    assert.match(err, '[type:myerr] hello')
+    assert.match(err, '[myerr][code:-1] hello')
 
     -- test that throws an error if __tostring metamethod not returned string
     err = t:new(message.new(setmetatable({}, {
@@ -51,4 +71,15 @@ function testcase.with_error_type()
     assert.match(assert.throws(tostring, err),
                  '"__tostring" metamethod must return a string')
 
+end
+
+function testcase.is()
+    error.debug(true)
+    local t = error.type.new('is_myerr')
+    local msg = message.new('hello')
+    local err = error.new('last-error', t:new(msg))
+
+    -- test that get typed-error by error.message
+    local terr = assert(error.is(err, msg))
+    assert.equal(terr.message, msg)
 end

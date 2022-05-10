@@ -121,62 +121,39 @@ function testcase.new_error()
     local t = error_type.new('my.error1', nil, 'main error message')
     local err = t:new()
     assert.match(err,
-                 'error_type_test%.lua.+ %[my.error1%] main error message$',
+                 'error_type_test%.lua.+ %[my.error1%].+ main error message$',
                  false)
 
     -- test that create new typed error with string message
     err = t:new('typed string error')
     assert.match(tostring(err),
-                 'error_type_test%.lua.+ %[my.error1%] .+ [(]typed string error[)]',
+                 'error_type_test%.lua.+ %[my.error1%].+ [(]typed string error[)]',
                  false)
 
     -- test that create new typed error with structured message
     t = error_type.new('my.error')
-    err = t:new({
-        tostring = function(_, where, traceback, errt)
-            assert.equal(t, errt)
-            assert.is_nil(traceback)
-            return string.format('%s [%s] typed error', where, errt.name)
+    err = t:new(setmetatable({}, {
+        __tostring = function()
+            return 'typed error'
         end,
-    })
+    }))
     assert.match(tostring(err),
-                 'error_type_test%.lua.+ %[my.error%] typed error', false)
+                 'error_type_test%.lua.+ %[my.error%].+ typed error', false)
 
     -- test that create new typed error with a stack traceback
-    err = t:new({
-        tostring = function(_, where, traceback)
-            assert.is_string(traceback)
-            return where .. 'error with traceback\n' .. traceback
-        end,
-    }, nil, nil, true)
+    err = t:new('error with traceback', nil, nil, true)
     assert.match(tostring(err), 'stack traceback:', false)
 
-    -- test that throw error
+    -- test that create new typed error without message
+    err = t:new()
+    assert.match(tostring(err), '%[code:%-1] nil', false)
+
+    -- test that throw error if name already exists
+    err = assert.throws(error_type.new, 'my.error')
+    assert.match(err, 'already used in other error type')
+
+    -- test that throw error if argument is invalid
     for _, v in ipairs({
-        -- no message
-        {
-            arg = {},
-            match = '#1 .+argument must be string or table expected, got no value',
-        },
-        -- invalid message
-        {
-            arg = {
-                true,
-            },
-            match = '#1 .+argument must be string or table expected, got boolean',
-        },
-        {
-            arg = {
-                1,
-            },
-            match = '#1 .+argument must be string or table expected, got number',
-        },
-        {
-            arg = {
-                {},
-            },
-            match = '#1 .+tostring function or __tostring metamethod does not exist in table',
-        },
         -- invalid wrap argument
         {
             arg = {
