@@ -37,7 +37,6 @@
 typedef struct {
     int ref_msg;
     int ref_op;
-    lua_Integer code;
 } le_error_message_t;
 
 typedef struct {
@@ -123,30 +122,27 @@ static inline int le_isdebug(lua_State *L)
 /**
  * create a new structured message that equivalent to the following code;
  *
- *  error.message.new(message [, op [, code]])
+ *  error.message.new(message [, op]])
  *
  * push all arguments (including nil) onto the stack and call the API with
  * the msg index.
  * the last argument must be placed at the top of the stack.
  * this function removes all arguments from the stack.
  */
-static inline int le_new_message_ex(lua_State *L, int msgidx, int default_code)
+static inline int le_new_message(lua_State *L, int msgidx)
 {
     int idx = (msgidx < 0) ? lua_gettop(L) + msgidx + 1 : msgidx;
     le_error_message_t *errm = NULL;
     const char *op           = NULL;
-    lua_Integer code         = default_code;
 
     luaL_checkany(L, idx);
-    op   = lauxh_optstring(L, idx + 1, NULL);
-    code = lauxh_optinteger(L, idx + 2, code);
+    op = lauxh_optstring(L, idx + 1, NULL);
 
     // create message
     errm  = lua_newuserdata(L, sizeof(le_error_message_t));
     *errm = (le_error_message_t){
         .ref_msg = LUA_NOREF,
         .ref_op  = LUA_NOREF,
-        .code    = code,
     };
     lauxh_setmetatable(L, LE_ERROR_MESSAGE_MT);
     errm->ref_msg = lauxh_refat(L, idx);
@@ -159,7 +155,6 @@ static inline int le_new_message_ex(lua_State *L, int msgidx, int default_code)
 
     return 1;
 }
-#define le_new_message(L, msgidx) le_new_message_ex(L, msgidx, -1)
 
 /**
  * create a new error that equivalent to the following code;
@@ -171,7 +166,7 @@ static inline int le_new_message_ex(lua_State *L, int msgidx, int default_code)
  * the last argument must be placed at the top of the stack.
  * this function removes all arguments from the stack.
  */
-static inline int le_new_error_ex(lua_State *L, int msgidx, int default_code)
+static inline int le_new_error(lua_State *L, int msgidx)
 {
     int idx          = (msgidx < 0) ? lua_gettop(L) + msgidx + 1 : msgidx;
     le_error_t *err  = NULL;
@@ -188,7 +183,7 @@ static inline int le_new_error_ex(lua_State *L, int msgidx, int default_code)
     if (!lauxh_ismetatableof(L, idx, LE_ERROR_MESSAGE_MT)) {
         // convert message to error.message
         lua_pushvalue(L, idx);
-        le_new_message_ex(L, -1, default_code);
+        le_new_message(L, -1);
         lua_replace(L, idx);
     }
 
@@ -218,7 +213,6 @@ static inline int le_new_error_ex(lua_State *L, int msgidx, int default_code)
 
     return 1;
 }
-#define le_new_error(L, msgidx) le_new_error_ex(L, msgidx, -1)
 
 /**
  * error type registry
@@ -360,18 +354,18 @@ static inline int le_new_type(lua_State *L, int nameidx)
  */
 static inline int le_new_typed_error(lua_State *L, int typeidx)
 {
-    int idx = (typeidx < 0) ? lua_gettop(L) + typeidx + 1 : typeidx;
-    le_error_type_t *errt = luaL_checkudata(L, idx, LE_ERROR_TYPE_MT);
-    int nomsg             = lua_isnoneornil(L, idx + 1);
-    le_error_t *err       = NULL;
+    int idx         = (typeidx < 0) ? lua_gettop(L) + typeidx + 1 : typeidx;
+    int nomsg       = lua_isnoneornil(L, idx + 1);
+    le_error_t *err = NULL;
 
+    lauxh_isuserdataof(L, idx, LE_ERROR_TYPE_MT);
     if (nomsg) {
         lua_pushnil(L);
         if ((idx + 1) < lua_gettop(L)) {
             lua_replace(L, (idx + 1));
         }
     }
-    le_new_error_ex(L, idx + 1, errt->code);
+    le_new_error(L, idx + 1);
     err           = lua_touserdata(L, -1);
     err->ref_type = lauxh_refat(L, idx);
     // remove all arguments

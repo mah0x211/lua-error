@@ -135,7 +135,7 @@ function testcase.properties()
     -- test that accessing properties
     local err = error.new('hello error')
     local msg = assert(err.message)
-    assert.match(tostring(msg), '[code:-1] hello error')
+    assert.match(tostring(msg), 'hello error')
     assert.is_nil(err.type)
 
     -- test that accessing unknown property
@@ -148,12 +148,12 @@ end
 function testcase.tostring()
     -- test that string conversion
     local err = error.new('hello error')
-    assert.match(err, 'error_test%.lua.+ %[code:%-1] hello error', false)
+    assert.match(err, 'error_test%.lua.+ hello error', false)
 
     -- test that convert with wrapped error
     local err2 = error.new('world error', err)
-    assert.match(err2, 'error_test%.lua.+ %[code:%-1] hello error', false)
-    assert.match(err2, 'error_test%.lua.+ %[code:%-1] world error', false)
+    assert.match(err2, 'error_test%.lua.+ hello error', false)
+    assert.match(err2, 'error_test%.lua.+ world error', false)
 
     -- test that throws an error if __tostring metamethod not returns a string
     err = error.new(setmetatable({}, {

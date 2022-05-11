@@ -7,24 +7,17 @@ function testcase.new()
     local msg = message.new('hello')
     assert.equal(msg.message, 'hello')
     assert.is_nil(msg.op)
-    assert.equal(msg.code, -1)
-    assert.match(tostring(msg), '[code:-1] hello')
+    assert.match(tostring(msg), 'hello')
 
     -- test that create with op
     msg = message.new('hello', 'test-op')
     assert.equal(msg.op, 'test-op')
-    assert.match(tostring(msg), '[code:-1][op:test-op] hello')
-
-    -- test that create with code
-    msg = message.new('hello', 'test-op', 123)
-    assert.equal(msg.code, 123)
-    assert.match(tostring(msg), '[code:123][op:test-op] hello')
+    assert.match(tostring(msg), '[op:test-op] hello')
 
     -- test that create by table
     local tbl = {}
-    msg = message.new(tbl, 'test-op', 123)
-    assert.equal(msg.code, 123)
-    assert.match(tostring(msg), '[code:123][op:test-op] table: ')
+    msg = message.new(tbl, 'test-op')
+    assert.match(tostring(msg), '[op:test-op] table: ')
 
     -- test that calls tbl.__tostring metamethod
     setmetatable(tbl, {
@@ -32,7 +25,7 @@ function testcase.new()
             return '__tostring metamethod'
         end,
     })
-    assert.match(tostring(msg), '[code:123][op:test-op] __tostring metamethod')
+    assert.match(tostring(msg), '[op:test-op] __tostring metamethod')
 
     -- test that throws an error if no argument
     local err = assert.throws(message.new)
@@ -44,14 +37,14 @@ function testcase.with_error_type()
     local t = error.type.new('myerr')
 
     -- test that create new structured message from string message
-    local err = t:new(message.new('hello'))
-    assert.match(err, '[myerr][code:-1] hello')
+    local err = t:new(message.new('hello', 'myop'))
+    assert.match(err, '[myerr:-1][myop] hello')
 
     -- test that create new structured message from table message
     err = t:new(message.new({
         'hello',
     }))
-    assert.match(err, '[myerr][code:-1] table: ')
+    assert.match(err, '[myerr:-1] table: ')
 
     -- test that create new structured message from table message that contains __tostring metamethod
     err = t:new(message.new(setmetatable({
@@ -61,7 +54,7 @@ function testcase.with_error_type()
             return self.message
         end,
     })))
-    assert.match(err, '[myerr][code:-1] hello')
+    assert.match(err, '[myerr:-1] hello')
 
     -- test that throws an error if __tostring metamethod not returned string
     err = t:new(message.new(setmetatable({}, {

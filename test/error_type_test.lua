@@ -121,13 +121,13 @@ function testcase.new_error()
     local t = error_type.new('my.error1', nil, 'main error message')
     local err = t:new()
     assert.match(err,
-                 'error_type_test%.lua.+ %[my.error1%].+ main error message$',
+                 'error_type_test%.lua.+ %[my.error1:%-1] main error message$',
                  false)
 
     -- test that create new typed error with string message
     err = t:new('typed string error')
     assert.match(tostring(err),
-                 'error_type_test%.lua.+ %[my.error1%].+ [(]typed string error[)]',
+                 'error_type_test%.lua.+ %[my.error1:%-1].+ [(]typed string error[)]',
                  false)
 
     -- test that create new typed error with structured message
@@ -138,7 +138,7 @@ function testcase.new_error()
         end,
     }))
     assert.match(tostring(err),
-                 'error_type_test%.lua.+ %[my.error%].+ typed error', false)
+                 'error_type_test%.lua.+ %[my.error:%-1] typed error', false)
 
     -- test that create new typed error with a stack traceback
     err = t:new('error with traceback', nil, nil, true)
@@ -146,7 +146,7 @@ function testcase.new_error()
 
     -- test that create new typed error without message
     err = t:new()
-    assert.match(tostring(err), '%[code:%-1] nil', false)
+    assert.match(tostring(err), '%[my.error:%-1] nil', false)
 
     -- test that throw error if name already exists
     err = assert.throws(error_type.new, 'my.error')
