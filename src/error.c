@@ -28,6 +28,7 @@ static int index_lua(lua_State *L)
     static const char *const fields[] = {
         "message",
         "type",
+        "code",
         NULL,
     };
     le_error_t *err = luaL_checkudata(L, 1, LE_ERROR_MT);
@@ -41,6 +42,16 @@ static int index_lua(lua_State *L)
     case 1:
         lauxh_pushref(L, err->ref_type);
         break;
+
+    case 2: {
+        int code = -1;
+        if (err->ref_type != LUA_NOREF) {
+            lauxh_pushref(L, err->ref_type);
+            code = ((le_error_type_t *)lua_touserdata(L, -1))->code;
+            lua_pop(L, 1);
+        }
+        lua_pushinteger(L, code);
+    } break;
     }
 
     return 1;

@@ -83,6 +83,9 @@ function testcase.code()
 
     t = error_type.new('my.error2', 123)
     assert.equal(t.code, 123)
+
+    local err = t:new()
+    assert.equal(err.code, 123)
 end
 
 function testcase.message()
