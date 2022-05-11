@@ -55,7 +55,7 @@ if an error type object has deleted, its return `1`,  otherwise return `0`.
 
 ### int le_new_message(lua_State *L, int msgidx)
 
-create a new structured message that equivalent to `error.message.new(message [, op [, code]])` function.
+create a new structured message that equivalent to `error.message.new(message [, op])` function.
 
 
 ## Module Structure
@@ -127,10 +127,14 @@ local error = require('error')
 local err = error.new('my new error object')
 print(err.message)
 print(err.type)
+print(err.code) -- equivalent to err.type.code (default: -1)
+print(err.op) -- equivalent to err.message.op
 ```
 
 - `message:error.message`: the message of the `error` object.
 - `type:error.type`: the type of the `error` object.
+- `code:integer`: the `code` property of the `error.type` object. (default: `-1`)
+- `op:string`: the `op` property of the `error.message` object.
 
 
 ## err = error.toerror( message [, wrap [, level [, traceback]]] )
@@ -193,11 +197,11 @@ local error = require('error')
 local err1 = error.new('first error')
 local err2 = error.new('second error', err1)
 
-print(err2) -- ./example.lua:4: in main chunk: [code:-1] second error\n./example.lua:3: in main chunk: [code:-1] first error
+print(err2) -- ./example.lua:4: in main chunk: second error\n./example.lua:3: in main chunk: first error
 
 -- extract first error
 local err = error.unwrap(err2)
-print(err) -- ./example.lua:3: in main chunk: [code:-1] first error
+print(err) -- ./example.lua:3: in main chunk: first error
 print(err == err1) -- true
 ```
 
@@ -224,10 +228,10 @@ local err2 = err2type:new('second error', err1)
 local err3 = error.new('third error', err2)
 
 -- get the err1 by message
-print(error.is(err3, 'first error')) -- ./example.lua:3: in main chunk: [code:-1] first error
+print(error.is(err3, 'first error')) -- ./example.lua:3: in main chunk: first error
 
 -- get the err2 by error type
-print(error.is(err3, err2type)) -- ./example.lua:6: in main chunk: [seond_error_type][code:-1] second error\n./example.lua:3: in main chunk: [code:-1] first error
+print(error.is(err3, err2type)) -- ./example.lua:6: in main chunk: [seond_error_type:-1] second error\n./example.lua:3: in main chunk: first error
 
 -- it returns nil if message does not matches with any of error message
 print(error.is(err3, 'unknown message')) -- nil
@@ -375,8 +379,8 @@ it also sets the `error.type` object to the `error` object.
 ```lua
 local error = require('error')
 local errt = error.type.new('my_error_type', nil, 'my error message')
-print(errt:new()) -- ./example.lua:3: in main chunk: [my_error_type][code:-1] my error message
-print(errt:new('typed error')) -- ./example.lua:4: in main chunk: [my_error_type][code:-1] my error message (typed error)
+print(errt:new()) -- ./example.lua:3: in main chunk: [my_error_type:-1] my error message
+print(errt:new('typed error')) -- ./example.lua:4: in main chunk: [my_error_type:-1] my error message (typed error)
 ```
 
 **Returns**
@@ -384,14 +388,14 @@ print(errt:new('typed error')) -- ./example.lua:4: in main chunk: [my_error_type
 - `err:error`: a new `error` object that holds the `error.type` object.
 
 
-## msg = error.message.new( message [, op [, code]] )
+## msg = error.message.new( message [, op] )
 
 create a new structured message.
 
 ```lua
 local error = require('error')
-local msg = error.message.new('my message', 'my operation', 123)
-print(msg) -- [code:123][op:my operation] my message
+local msg = error.message.new('my message', 'my operation')
+print(msg) -- [my operation] my message
 ```
 
 **Params**
@@ -413,15 +417,13 @@ if a `message` has the `__tostring` metamethod, that method called during string
 
 ```lua
 local error = require('error')
-local msg = error.message.new('my error message', 'my operation', 123)
+local msg = error.message.new('my error message', 'my operation')
 print(msg.message) -- my_error_type
 print(msg.op) -- my operation
-print(msg.code) -- 123
 ```
 
 - `message:string`: the message of the `error.message` object.
 - `op:string`: the op of the `error.message` object.
-- `code:integer`: the code of the `error.message` object.
 
 
 ## `error.check` module

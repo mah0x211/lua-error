@@ -28,7 +28,6 @@ static int index_lua(lua_State *L)
     static const char *const fields[] = {
         "message",
         "op",
-        "code",
         NULL,
     };
     le_error_message_t *errm = luaL_checkudata(L, 1, LE_ERROR_MESSAGE_MT);
@@ -39,12 +38,8 @@ static int index_lua(lua_State *L)
         lauxh_pushref(L, errm->ref_msg);
         break;
 
-    case 1:
-        lauxh_pushref(L, errm->ref_op);
-        break;
-
     default:
-        lua_pushinteger(L, errm->code);
+        lauxh_pushref(L, errm->ref_op);
         break;
     }
 
@@ -60,25 +55,16 @@ static int tostring_lua(lua_State *L)
     lua_settop(L, 1);
     luaL_buffinit(L, &b);
 
-    // add '<code>'
-    lua_pushliteral(L, "[code:");
-    luaL_addvalue(&b);
-    lua_pushinteger(L, errm->code);
-    le_tostring(L, -1);
-    luaL_addvalue(&b);
-    luaL_addchar(&b, ']');
-
     // add '<op>'
     if (errm->ref_op != LUA_NOREF) {
         lua_pushliteral(L, "[op:");
         luaL_addvalue(&b);
         lauxh_pushref(L, errm->ref_op);
         luaL_addvalue(&b);
-        luaL_addchar(&b, ']');
+        luaL_addstring(&b, "] ");
     }
 
     // add '<message>'
-    luaL_addchar(&b, ' ');
     lauxh_pushref(L, errm->ref_msg);
     le_tostring(L, -1);
     luaL_addvalue(&b);
