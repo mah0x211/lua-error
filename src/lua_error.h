@@ -393,6 +393,7 @@ static inline void le_tostring(lua_State *L, int idx)
         if (!lua_isstring(L, -1)) {
             luaL_error(L, "\"__tostring\" metamethod must return a string");
         }
+        lua_replace(L, idx);
     } else if (type != LUA_TSTRING) {
         switch (type) {
         case LUA_TNONE:
