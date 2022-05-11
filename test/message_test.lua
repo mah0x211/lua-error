@@ -39,6 +39,7 @@ function testcase.with_error_type()
     -- test that create new structured message from string message
     local err = t:new(message.new('hello', 'myop'))
     assert.match(err, '[myerr:-1][myop] hello')
+    assert.equal(err.op, 'myop')
 
     -- test that create new structured message from table message
     err = t:new(message.new({

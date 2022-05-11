@@ -26,10 +26,7 @@
 static int index_lua(lua_State *L)
 {
     static const char *const fields[] = {
-        "message",
-        "type",
-        "code",
-        NULL,
+        "message", "type", "code", "op", NULL,
     };
     le_error_t *err = luaL_checkudata(L, 1, LE_ERROR_MT);
     int idx         = luaL_checkoption(L, 2, NULL, fields);
@@ -37,11 +34,11 @@ static int index_lua(lua_State *L)
     switch (idx) {
     case 0:
         lauxh_pushref(L, err->ref_msg);
-        break;
+        return 1;
 
     case 1:
         lauxh_pushref(L, err->ref_type);
-        break;
+        return 1;
 
     case 2: {
         int code = -1;
@@ -51,9 +48,18 @@ static int index_lua(lua_State *L)
             lua_pop(L, 1);
         }
         lua_pushinteger(L, code);
-    } break;
+        return 1;
     }
 
+    case 3:
+        if (err->ref_msg != LUA_NOREF) {
+            lauxh_pushref(L, err->ref_msg);
+            lauxh_pushref(
+                L, ((le_error_message_t *)lua_touserdata(L, -1))->ref_op);
+            return 1;
+        }
+    }
+    lua_pushnil(L);
     return 1;
 }
 

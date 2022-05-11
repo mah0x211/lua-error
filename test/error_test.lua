@@ -137,6 +137,7 @@ function testcase.properties()
     local msg = assert(err.message)
     assert.match(tostring(msg), 'hello error')
     assert.is_nil(err.type)
+    assert.is_nil(err.op)
     assert.equal(err.code, -1)
 
     -- test that accessing unknown property
