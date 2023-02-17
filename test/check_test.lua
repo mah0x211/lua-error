@@ -786,3 +786,61 @@ function testcase.uint32()
     end
 end
 
+function testcase.pint()
+    -- test that valid argument
+    for _, arg in ipairs({
+        1,
+        1234,
+    }) do
+        error_check.pint(arg)
+    end
+
+    for _, invalid in ipairs({
+        {
+            arg = 'foo',
+            match = 'pint expected, got string',
+        },
+        {
+            arg = 0,
+            match = 'pint expected, got an out of range value',
+        },
+        {
+            arg = 1.2,
+            match = 'pint expected, got number',
+        },
+        {
+            arg = 0 / 0,
+            match = 'pint expected, got %-*nan',
+        },
+        {
+            arg = math.huge,
+            match = 'pint expected, got inf',
+        },
+        {
+            arg = -math.huge,
+            match = 'pint expected, got %-inf',
+        },
+    }) do
+        -- test that invalid argument
+        local err = assert.throws(function()
+            invoke(error_check.pint, invalid.arg)
+        end)
+        assert.match(err, invalid.match, false)
+        assert.match(err, '#1 .+testcall', false)
+        assert.match(err, 'stack traceback:', false)
+
+        -- test that invalid argument with argidx
+        err = assert.throws(function()
+            invoke(error_check.pint, invalid.arg, 5)
+        end)
+        assert.match(err, '#5 .+testcall', false)
+
+        -- test that invalid argument with level and without traceback
+        err = assert.throws(function()
+            invoke(error_check.pint, invalid.arg, 4, 2, false)
+        end)
+        assert.match(err, '#4 .+invoke', false)
+        assert.not_match(err, 'stack traceback:', false)
+    end
+end
+

@@ -121,6 +121,14 @@ static lua_Integer checkint(lua_State *L, const char *exp)
 #define tokenize3(x, y, z) tokenize2(x##y, z)
 #define stringer(x)        #x
 
+static int pint_lua(lua_State *L)
+{
+    if (checkint(L, "pint") < 1) {
+        argerror(L, "pint", "an out of range value");
+    }
+    return 0;
+}
+
 #define check_uintsize(L, size)                                                \
  do {                                                                          \
   lua_Integer v = checkint(L, "uint" stringer(size));                          \
@@ -304,6 +312,7 @@ LUALIB_API int le_open_error_check(lua_State *L)
         {"number",    number_lua   },
         {"finite",    finite_lua   },
         {"unsigned",  unsigned_lua },
+        {"pint",      pint_lua     },
         {"int",       int_lua      },
         {"int8",      int8_lua     },
         {"int16",     int16_lua    },
