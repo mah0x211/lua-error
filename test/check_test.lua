@@ -589,6 +589,44 @@ function testcase.int32()
     end
 end
 
+function testcase.int64()
+    -- test that valid argument
+    for _, arg in ipairs({
+        -9223372036854775807,
+        0x7FFFFFFFFFFFFDFF,
+    }) do
+        error_check.int64(arg)
+    end
+
+    for _, invalid in ipairs({
+        {
+            arg = 'foo',
+            match = 'int64 expected, got string',
+        },
+    }) do
+        -- test that invalid argument
+        local err = assert.throws(function()
+            invoke(error_check.int64, invalid.arg)
+        end)
+        assert.match(err, invalid.match, false)
+        assert.match(err, '#1 .+testcall', false)
+        assert.match(err, 'stack traceback:', false)
+
+        -- test that invalid argument with argidx
+        err = assert.throws(function()
+            invoke(error_check.int64, invalid.arg, 5)
+        end)
+        assert.match(err, '#5 .+testcall', false)
+
+        -- test that invalid argument with level and without traceback
+        err = assert.throws(function()
+            invoke(error_check.int64, invalid.arg, 4, 2, false)
+        end)
+        assert.match(err, '#4 .+invoke', false)
+        assert.not_match(err, 'stack traceback:', false)
+    end
+end
+
 function testcase.uint()
     -- test that valid argument
     for _, arg in ipairs({
@@ -652,7 +690,7 @@ function testcase.uint8()
     -- test that valid argument
     for _, arg in ipairs({
         0,
-        255,
+        0xFF,
     }) do
         error_check.uint8(arg)
     end
@@ -667,7 +705,7 @@ function testcase.uint8()
             match = 'uint8 expected, got an out of range value',
         },
         {
-            arg = 256,
+            arg = 0x100,
             match = 'uint8 expected, got an out of range value',
         },
     }) do
@@ -698,7 +736,7 @@ function testcase.uint16()
     -- test that valid argument
     for _, arg in ipairs({
         0,
-        65535,
+        0xFFFF,
     }) do
         error_check.uint16(arg)
     end
@@ -713,7 +751,7 @@ function testcase.uint16()
             match = 'uint16 expected, got an out of range value',
         },
         {
-            arg = 65536,
+            arg = 0x10000,
             match = 'uint16 expected, got an out of range value',
         },
     }) do
@@ -744,7 +782,7 @@ function testcase.uint32()
     -- test that valid argument
     for _, arg in ipairs({
         0,
-        4294967295,
+        0xFFFFFFFF,
     }) do
         error_check.uint32(arg)
     end
@@ -759,7 +797,7 @@ function testcase.uint32()
             match = 'uint32 expected, got an out of range value',
         },
         {
-            arg = 4294967296,
+            arg = 0x100000000,
             match = 'uint32 expected, got an out of range value',
         },
     }) do
@@ -780,6 +818,48 @@ function testcase.uint32()
         -- test that invalid argument with level and without traceback
         err = assert.throws(function()
             invoke(error_check.uint32, invalid.arg, 4, 2, false)
+        end)
+        assert.match(err, '#4 .+invoke', false)
+        assert.not_match(err, 'stack traceback:', false)
+    end
+end
+
+function testcase.uint64()
+    -- test that valid argument
+    for _, arg in ipairs({
+        0,
+        0x7FFFFFFFFFFFFDFF,
+    }) do
+        error_check.uint64(arg)
+    end
+
+    for _, invalid in ipairs({
+        {
+            arg = 'string',
+            match = 'uint64 expected, got string',
+        },
+        {
+            arg = -1,
+            match = 'uint64 expected, got an out of range value',
+        },
+    }) do
+        -- test that invalid argument
+        local err = assert.throws(function()
+            invoke(error_check.uint64, invalid.arg)
+        end)
+        assert.match(err, invalid.match, false)
+        assert.match(err, '#1 .+testcall', false)
+        assert.match(err, 'stack traceback:', false)
+
+        -- test that invalid argument with argidx
+        err = assert.throws(function()
+            invoke(error_check.uint64, invalid.arg, 5)
+        end)
+        assert.match(err, '#5 .+testcall', false)
+
+        -- test that invalid argument with level and without traceback
+        err = assert.throws(function()
+            invoke(error_check.uint64, invalid.arg, 4, 2, false)
         end)
         assert.match(err, '#4 .+invoke', false)
         assert.not_match(err, 'stack traceback:', false)
@@ -848,7 +928,7 @@ function testcase.pint8()
     -- test that valid argument
     for _, arg in ipairs({
         1,
-        255,
+        0xFF,
     }) do
         error_check.pint8(arg)
     end
@@ -863,7 +943,7 @@ function testcase.pint8()
             match = 'pint8 expected, got an out of range value',
         },
         {
-            arg = 256,
+            arg = 0x100,
             match = 'pint8 expected, got an out of range value',
         },
     }) do
@@ -894,7 +974,7 @@ function testcase.pint16()
     -- test that valid argument
     for _, arg in ipairs({
         1,
-        65535,
+        0xFFFF,
     }) do
         error_check.pint16(arg)
     end
@@ -909,7 +989,7 @@ function testcase.pint16()
             match = 'pint16 expected, got an out of range value',
         },
         {
-            arg = 65536,
+            arg = 0x10000,
             match = 'pint16 expected, got an out of range value',
         },
     }) do
@@ -940,7 +1020,7 @@ function testcase.pint32()
     -- test that valid argument
     for _, arg in ipairs({
         1,
-        4294967295,
+        0xFFFFFFFF,
     }) do
         error_check.pint32(arg)
     end
@@ -955,7 +1035,7 @@ function testcase.pint32()
             match = 'pint32 expected, got an out of range value',
         },
         {
-            arg = 4294967296,
+            arg = 0x100000000,
             match = 'pint32 expected, got an out of range value',
         },
     }) do
@@ -976,6 +1056,48 @@ function testcase.pint32()
         -- test that invalid argument with level and without traceback
         err = assert.throws(function()
             invoke(error_check.pint32, invalid.arg, 4, 2, false)
+        end)
+        assert.match(err, '#4 .+invoke', false)
+        assert.not_match(err, 'stack traceback:', false)
+    end
+end
+
+function testcase.pint64()
+    -- test that valid argument
+    for _, arg in ipairs({
+        1,
+        0x7FFFFFFFFFFFFDFF,
+    }) do
+        error_check.pint64(arg)
+    end
+
+    for _, invalid in ipairs({
+        {
+            arg = 'string',
+            match = 'pint64 expected, got string',
+        },
+        {
+            arg = 0,
+            match = 'pint64 expected, got an out of range value',
+        },
+    }) do
+        -- test that invalid argument
+        local err = assert.throws(function()
+            invoke(error_check.pint64, invalid.arg)
+        end)
+        assert.match(err, invalid.match, false)
+        assert.match(err, '#1 .+testcall', false)
+        assert.match(err, 'stack traceback:', false)
+
+        -- test that invalid argument with argidx
+        err = assert.throws(function()
+            invoke(error_check.pint64, invalid.arg, 5)
+        end)
+        assert.match(err, '#5 .+testcall', false)
+
+        -- test that invalid argument with level and without traceback
+        err = assert.throws(function()
+            invoke(error_check.pint64, invalid.arg, 4, 2, false)
         end)
         assert.match(err, '#4 .+invoke', false)
         assert.not_match(err, 'stack traceback:', false)

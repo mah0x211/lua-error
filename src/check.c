@@ -129,6 +129,12 @@ static lua_Integer checkint(lua_State *L, const char *exp)
   }                                                                            \
  } while (0)
 
+static int pint64_lua(lua_State *L)
+{
+    check_pintsize(L, 64);
+    return 0;
+}
+
 static int pint32_lua(lua_State *L)
 {
     check_pintsize(L, 32);
@@ -342,6 +348,7 @@ LUALIB_API int le_open_error_check(lua_State *L)
         {"pint8",     pint8_lua    },
         {"pint16",    pint16_lua   },
         {"pint32",    pint32_lua   },
+        {"pint64",    pint64_lua   },
         {"int",       int_lua      },
         {"int8",      int8_lua     },
         {"int16",     int16_lua    },
