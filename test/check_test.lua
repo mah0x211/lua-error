@@ -890,3 +890,49 @@ function testcase.pint8()
     end
 end
 
+function testcase.pint16()
+    -- test that valid argument
+    for _, arg in ipairs({
+        1,
+        65535,
+    }) do
+        error_check.pint16(arg)
+    end
+
+    for _, invalid in ipairs({
+        {
+            arg = 'string',
+            match = 'pint16 expected, got string',
+        },
+        {
+            arg = 0,
+            match = 'pint16 expected, got an out of range value',
+        },
+        {
+            arg = 65536,
+            match = 'pint16 expected, got an out of range value',
+        },
+    }) do
+        -- test that invalid argument
+        local err = assert.throws(function()
+            invoke(error_check.pint16, invalid.arg)
+        end)
+        assert.match(err, invalid.match, false)
+        assert.match(err, '#1 .+testcall', false)
+        assert.match(err, 'stack traceback:', false)
+
+        -- test that invalid argument with argidx
+        err = assert.throws(function()
+            invoke(error_check.pint16, invalid.arg, 5)
+        end)
+        assert.match(err, '#5 .+testcall', false)
+
+        -- test that invalid argument with level and without traceback
+        err = assert.throws(function()
+            invoke(error_check.pint16, invalid.arg, 4, 2, false)
+        end)
+        assert.match(err, '#4 .+invoke', false)
+        assert.not_match(err, 'stack traceback:', false)
+    end
+end
+
