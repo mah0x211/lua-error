@@ -30,8 +30,8 @@ static int index_lua(lua_State *L)
         "op",
         NULL,
     };
-    le_error_message_t *errm = luaL_checkudata(L, 1, LE_ERROR_MESSAGE_MT);
-    int idx                  = luaL_checkoption(L, 2, NULL, fields);
+    lua_error_message_t *errm = luaL_checkudata(L, 1, LUA_ERROR_MESSAGE_MT);
+    int idx                   = luaL_checkoption(L, 2, NULL, fields);
 
     switch (idx) {
     case 0:
@@ -49,8 +49,8 @@ static int index_lua(lua_State *L)
 //  tostring(self [, where [, traceback [, type]]])
 static int tostring_lua(lua_State *L)
 {
-    le_error_message_t *errm = luaL_checkudata(L, 1, LE_ERROR_MESSAGE_MT);
-    luaL_Buffer b            = {0};
+    lua_error_message_t *errm = luaL_checkudata(L, 1, LUA_ERROR_MESSAGE_MT);
+    luaL_Buffer b             = {0};
 
     lua_settop(L, 1);
     luaL_buffinit(L, &b);
@@ -66,7 +66,7 @@ static int tostring_lua(lua_State *L)
 
     // add '<message>'
     lauxh_pushref(L, errm->ref_msg);
-    le_tostring(L, -1);
+    lua_error_tostring(L, -1);
     luaL_addvalue(&b);
 
     luaL_pushresult(&b);
@@ -76,7 +76,7 @@ static int tostring_lua(lua_State *L)
 
 static int gc_lua(lua_State *L)
 {
-    le_error_message_t *errm = luaL_checkudata(L, 1, LE_ERROR_MESSAGE_MT);
+    lua_error_message_t *errm = luaL_checkudata(L, 1, LUA_ERROR_MESSAGE_MT);
 
     errm->ref_msg = lauxh_unref(L, errm->ref_msg);
     errm->ref_op  = lauxh_unref(L, errm->ref_op);
@@ -86,7 +86,7 @@ static int gc_lua(lua_State *L)
 
 static int new_lua(lua_State *L)
 {
-    return le_new_message(L, 1);
+    return lua_error_new_message(L, 1);
 }
 
 LUALIB_API int le_open_error_message(lua_State *L)
@@ -99,7 +99,7 @@ LUALIB_API int le_open_error_message(lua_State *L)
     };
 
     // create metatable
-    luaL_newmetatable(L, LE_ERROR_MESSAGE_MT);
+    luaL_newmetatable(L, LUA_ERROR_MESSAGE_MT);
     // lock metatable
     lauxh_pushnum2tbl(L, "__metatable", -1);
     // metamethods
