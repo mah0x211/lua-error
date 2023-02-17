@@ -99,24 +99,6 @@ static void checktype_ex(lua_State *L, int type, const char *exp)
 
 #define checktype(L, t) checktype_ex(L, t, lua_typename(L, t))
 
-static lua_Integer checkuint(lua_State *L, const char *exp)
-{
-    checkarg(L);
-    if (!isint(L, 1) || lua_tointeger(L, 1) < 0) {
-        int type = lua_type(L, 1);
-
-        if (type == LUA_TNUMBER) {
-            lua_Number n = lua_tonumber(L, 1);
-            if (isinf(n) || isnan(n)) {
-                argerror(L, exp, lua_tostring(L, 1));
-            }
-        }
-        argerror(L, exp, typename(L, type));
-    }
-
-    return lua_tointeger(L, 1);
-}
-
 static lua_Integer checkint(lua_State *L, const char *exp)
 {
     checkarg(L);
@@ -141,8 +123,8 @@ static lua_Integer checkint(lua_State *L, const char *exp)
 
 #define check_uintsize(L, size)                                                \
  do {                                                                          \
-  lua_Integer v = checkuint(L, "uint" stringer(size));                         \
-  if ((uint64_t)v > tokenize3(UINT, size, _MAX)) {                             \
+  lua_Integer v = checkint(L, "uint" stringer(size));                          \
+  if (v < 0 || (uint64_t)v > tokenize3(UINT, size, _MAX)) {                    \
    argerror(L, "uint" stringer(size), "an out of range value");                \
   }                                                                            \
  } while (0)
@@ -173,7 +155,9 @@ static int uint8_lua(lua_State *L)
 
 static int uint_lua(lua_State *L)
 {
-    checkuint(L, "uint");
+    if (checkint(L, "uint") < 0) {
+        argerror(L, "uint", "an out of range value");
+    }
     return 0;
 }
 
