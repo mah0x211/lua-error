@@ -92,7 +92,7 @@ static int tostring_lua(lua_State *L)
         luaL_addvalue(&b);
         luaL_addchar(&b, ':');
         lua_pushinteger(L, errt->code);
-        le_tostring(L, -1);
+        lua_error_tostring(L, -1);
         luaL_addvalue(&b);
         luaL_addchar(&b, ']');
         ref_typemsg = errt->ref_msg;
@@ -113,19 +113,19 @@ static int tostring_lua(lua_State *L)
     if (ref_typemsg == LUA_NOREF) {
         // <message.message>
         lauxh_pushref(L, errm->ref_msg);
-        le_tostring(L, -1);
+        lua_error_tostring(L, -1);
         luaL_addvalue(&b);
     } else {
         // <type.message>
         lauxh_pushref(L, ref_typemsg);
-        le_tostring(L, -1);
+        lua_error_tostring(L, -1);
         luaL_addvalue(&b);
         if (errm->ref_msg != LUA_REFNIL) {
             // use a message as sub-message as follows:
             //  <type.message> (<message>)
             luaL_addstring(&b, " (");
             lauxh_pushref(L, errm->ref_msg);
-            le_tostring(L, -1);
+            lua_error_tostring(L, -1);
             luaL_addvalue(&b);
             luaL_addchar(&b, ')');
         }
@@ -174,7 +174,7 @@ static int gc_lua(lua_State *L)
 
 static int new_lua(lua_State *L)
 {
-    return le_new_error(L, 1);
+    return lua_error_new(L, 1);
 }
 
 static int toerror_lua(lua_State *L)

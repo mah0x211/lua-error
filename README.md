@@ -18,42 +18,42 @@ the `error` module installs `lua_error.h` in the lua include directory.
 
 the following API can be used to create an error object or error type object.
 
-### void le_loadlib(lua_State *L, int level)
+### void lua_error_loadlib(lua_State *L, int level)
 
 load the lua-error module.  
 **NOTE:** you must call this API at least once before using the following API.
 
 
-### int le_new_error(lua_State *L, int msgidx)
+### int lua_error_new(lua_State *L, int msgidx)
 
 create a new error that equivalent to `error.new(message [, wrap [, level [, traceback]]])` function.
 
 
-### int le_new_type(lua_State *L, int nameidx)
+### int lua_error_new_type(lua_State *L, int nameidx)
 
 create a new error type that equivalent to `error.type.new(name [, code [, message]])` function.
 
 
-### int le_new_typed_error(lua_State *L, int typeidx)
+### int lua_error_new_typed_error(lua_State *L, int typeidx)
 
 create a new typed error that equivalent to `<myerr>:new([msg [, wrap [, level [, traceback]]]])` method.
 
 
-### int le_registry_get(lua_State *L, const char *name)
+### int lua_error_registry_get(lua_State *L, const char *name)
 
 get a error type object from registry that equivalent to `error.type.get(name)` function.
 
 if an error type object found, its return `1`,  otherwise return `0`.
 
 
-### int le_registry_del(lua_State *L, const char *name)
+### int lua_error_registry_del(lua_State *L, const char *name)
 
 delete a error type from registry that equivalent to `error.type.del(name)` function.
 
 if an error type object has deleted, its return `1`,  otherwise return `0`.
 
 
-### int le_new_message(lua_State *L, int msgidx)
+### int lua_error_new_message(lua_State *L, int msgidx)
 
 create a new structured message that equivalent to `error.message.new(message [, op])` function.
 

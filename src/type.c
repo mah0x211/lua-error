@@ -25,7 +25,7 @@
 
 static int new_lua(lua_State *L)
 {
-    return le_new_typed_error(L, 1);
+    return lua_error_new_typed_error(L, 1);
 }
 
 static int index_lua(lua_State *L)
@@ -80,7 +80,7 @@ static int gc_lua(lua_State *L)
 
 static int new_type_lua(lua_State *L)
 {
-    return le_new_type(L, 1);
+    return lua_error_new_type(L, 1);
 }
 
 static int del_lua(lua_State *L)
@@ -88,7 +88,7 @@ static int del_lua(lua_State *L)
     const char *name = lauxh_checkstring(L, 1);
 
     lua_settop(L, 1);
-    lua_pushboolean(L, le_registry_del(L, name));
+    lua_pushboolean(L, lua_error_registry_del(L, name));
 
     return 1;
 }
@@ -98,7 +98,7 @@ static int get_lua(lua_State *L)
     const char *name = lauxh_checkstring(L, 1);
 
     lua_settop(L, 1);
-    if (!le_registry_get(L, name)) {
+    if (!lua_error_registry_get(L, name)) {
         lua_pushnil(L);
     }
 

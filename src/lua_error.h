@@ -58,7 +58,10 @@ typedef struct {
 } lua_error_t;
 typedef lua_error_t __attribute__((deprecated)) le_error_t;
 
-static inline void le_where(lua_State *L, int level)
+#define LUA_ERROR_API            static inline
+#define LUA_ERROR_API_DEPRECATED static inline __attribute__((deprecated))
+
+LUA_ERROR_API void lua_error_where(lua_State *L, int level)
 {
     lua_Debug ar;
     luaL_Buffer b;
@@ -94,13 +97,18 @@ static inline void le_where(lua_State *L, int level)
     luaL_pushresult(&b);
 }
 
-static inline void le_loadlib(lua_State *L, int level)
+LUA_ERROR_API_DEPRECATED void le_where(lua_State *L, int level)
+{
+    lua_error_where(L, level);
+}
+
+LUA_ERROR_API void lua_error_loadlib(lua_State *L, int level)
 {
     int top = lua_gettop(L);
     luaL_getmetatable(L, LUA_ERROR_MT);
     if (lua_isnil(L, -1) &&
         ((luaL_loadstring(L, "require('error')") || lua_pcall(L, 0, 0, 0)))) {
-        le_where(L, level);
+        lua_error_where(L, level);
         lua_insert(L, lua_gettop(L) - 1);
         lua_concat(L, 2);
         lua_error(L);
@@ -108,9 +116,14 @@ static inline void le_loadlib(lua_State *L, int level)
     lua_settop(L, top);
 }
 
+LUA_ERROR_API_DEPRECATED void le_loadlib(lua_State *L, int level)
+{
+    lua_error_loadlib(L, level);
+}
+
 #define LUA_ERROR_DEBUG_FLG "error.debug"
 
-static inline int le_isdebug(lua_State *L)
+LUA_ERROR_API int lua_error_isdebug(lua_State *L)
 {
     int isdebug = 0;
 
@@ -120,6 +133,11 @@ static inline int le_isdebug(lua_State *L)
     lua_pop(L, 1);
 
     return isdebug;
+}
+
+LUA_ERROR_API_DEPRECATED int le_isdebug(lua_State *L)
+{
+    return lua_error_isdebug(L);
 }
 
 /**
@@ -132,7 +150,7 @@ static inline int le_isdebug(lua_State *L)
  * the last argument must be placed at the top of the stack.
  * this function removes all arguments from the stack.
  */
-static inline int le_new_message(lua_State *L, int msgidx)
+LUA_ERROR_API int lua_error_new_message(lua_State *L, int msgidx)
 {
     int idx = (msgidx < 0) ? lua_gettop(L) + msgidx + 1 : msgidx;
     lua_error_message_t *errm = NULL;
@@ -159,6 +177,11 @@ static inline int le_new_message(lua_State *L, int msgidx)
     return 1;
 }
 
+LUA_ERROR_API_DEPRECATED int le_new_message(lua_State *L, int msgidx)
+{
+    return lua_error_new_message(L, msgidx);
+}
+
 /**
  * create a new error that equivalent to the following code;
  *
@@ -169,7 +192,7 @@ static inline int le_new_message(lua_State *L, int msgidx)
  * the last argument must be placed at the top of the stack.
  * this function removes all arguments from the stack.
  */
-static inline int le_new_error(lua_State *L, int msgidx)
+LUA_ERROR_API int lua_error_new(lua_State *L, int msgidx)
 {
     int idx           = (msgidx < 0) ? lua_gettop(L) + msgidx + 1 : msgidx;
     lua_error_t *err  = NULL;
@@ -186,7 +209,7 @@ static inline int le_new_error(lua_State *L, int msgidx)
     if (!lauxh_ismetatableof(L, idx, LUA_ERROR_MESSAGE_MT)) {
         // convert message to error.message
         lua_pushvalue(L, idx);
-        le_new_message(L, -1);
+        lua_error_new_message(L, -1);
         lua_replace(L, idx);
     }
 
@@ -204,9 +227,9 @@ static inline int le_new_error(lua_State *L, int msgidx)
     if (wrap) {
         err->ref_wrap = lauxh_refat(L, idx + 1);
     }
-    le_where(L, level);
+    lua_error_where(L, level);
     err->ref_where = lauxh_ref(L);
-    if (le_isdebug(L) || traceback) {
+    if (lua_error_isdebug(L) || traceback) {
         lauxh_traceback(NULL, L, NULL, level);
         err->ref_traceback = lauxh_ref(L);
     }
@@ -217,10 +240,15 @@ static inline int le_new_error(lua_State *L, int msgidx)
     return 1;
 }
 
+LUA_ERROR_API_DEPRECATED int le_new_error(lua_State *L, int msgidx)
+{
+    return lua_error_new(L, msgidx);
+}
+
 /**
  * error type registry
  */
-static inline void le_registry(lua_State *L)
+LUA_ERROR_API void lua_error_registry(lua_State *L)
 {
     lua_getfield(L, LUA_REGISTRYINDEX, LUA_ERROR_REGISTRY_MT ".REGISTRY_TABLE");
     if (lua_isnil(L, -1)) {
@@ -237,14 +265,19 @@ static inline void le_registry(lua_State *L)
     }
 }
 
+LUA_ERROR_API_DEPRECATED void le_registry(lua_State *L)
+{
+    lua_error_registry(L);
+}
+
 /**
  * delete a error type from registry that equivalent to the following code;
  *
  *  error.type.del(name)
  */
-static inline int le_registry_del(lua_State *L, const char *name)
+LUA_ERROR_API int lua_error_registry_del(lua_State *L, const char *name)
 {
-    le_registry(L);
+    lua_error_registry(L);
     lua_getfield(L, -1, name);
     if (lua_isnil(L, -1)) {
         lua_pop(L, 2);
@@ -258,14 +291,19 @@ static inline int le_registry_del(lua_State *L, const char *name)
     return 1;
 }
 
+LUA_ERROR_API_DEPRECATED int le_registry_del(lua_State *L, const char *name)
+{
+    return lua_error_registry_del(L, name);
+}
+
 /**
  * get a error type object from registry that equivalent to the following code;
  *
  *  error.type.get(name)
  */
-static inline int le_registry_get(lua_State *L, const char *name)
+LUA_ERROR_API int lua_error_registry_get(lua_State *L, const char *name)
 {
-    le_registry(L);
+    lua_error_registry(L);
     lua_getfield(L, -1, name);
     if (lua_isnil(L, -1)) {
         lua_pop(L, 2);
@@ -285,6 +323,11 @@ static inline int le_registry_get(lua_State *L, const char *name)
     return 1;
 }
 
+LUA_ERROR_API_DEPRECATED int le_registry_get(lua_State *L, const char *name)
+{
+    return lua_error_registry_get(L, name);
+}
+
 /**
  * create a new error type that equivalent to the following code;
  *
@@ -294,7 +337,7 @@ static inline int le_registry_get(lua_State *L, const char *name)
  * the last argument must be placed at the top of the stack.
  * this function removes all arguments from the stack.
  */
-static inline int le_new_type(lua_State *L, int nameidx)
+LUA_ERROR_API int lua_error_new_type(lua_State *L, int nameidx)
 {
     int idx = (nameidx < 0) ? lua_gettop(L) + nameidx + 1 : nameidx;
     lua_error_type_t *errt = NULL;
@@ -322,7 +365,7 @@ static inline int le_new_type(lua_State *L, int nameidx)
         }
     }
 
-    if (le_registry_get(L, name)) {
+    if (lua_error_registry_get(L, name)) {
         // name already used in other error type
         return lauxh_argerror(L, idx, "already used in other error type");
     }
@@ -337,12 +380,17 @@ static inline int le_new_type(lua_State *L, int nameidx)
     lua_replace(L, idx);
     lua_settop(L, idx);
     // register
-    le_registry(L);
+    lua_error_registry(L);
     lua_pushvalue(L, -2);
     lua_setfield(L, -2, name);
     lua_pop(L, 1);
 
     return 1;
+}
+
+LUA_ERROR_API_DEPRECATED int le_new_type(lua_State *L, int nameidx)
+{
+    return lua_error_new_type(L, nameidx);
 }
 
 /**
@@ -355,7 +403,7 @@ static inline int le_new_type(lua_State *L, int nameidx)
  * the last argument must be placed at the top of the stack.
  * this function removes all arguments from the stack.
  */
-static inline int le_new_typed_error(lua_State *L, int typeidx)
+LUA_ERROR_API int lua_error_new_typed_error(lua_State *L, int typeidx)
 {
     int idx          = (typeidx < 0) ? lua_gettop(L) + typeidx + 1 : typeidx;
     int nomsg        = lua_isnoneornil(L, idx + 1);
@@ -368,7 +416,7 @@ static inline int le_new_typed_error(lua_State *L, int typeidx)
             lua_replace(L, (idx + 1));
         }
     }
-    le_new_error(L, idx + 1);
+    lua_error_new(L, idx + 1);
     err           = lua_touserdata(L, -1);
     err->ref_type = lauxh_refat(L, idx);
     // remove all arguments
@@ -378,7 +426,12 @@ static inline int le_new_typed_error(lua_State *L, int typeidx)
     return 1;
 }
 
-static inline void le_tostring(lua_State *L, int idx)
+LUA_ERROR_API_DEPRECATED int le_new_typed_error(lua_State *L, int typeidx)
+{
+    return lua_error_new_typed_error(L, typeidx);
+}
+
+LUA_ERROR_API void lua_error_tostring(lua_State *L, int idx)
 {
     int type = lua_type(L, idx);
 
@@ -416,6 +469,11 @@ static inline void le_tostring(lua_State *L, int idx)
         }
         lua_replace(L, idx);
     }
+}
+
+LUA_ERROR_API_DEPRECATED void le_tostring(lua_State *L, int idx)
+{
+    lua_error_tostring(L, idx);
 }
 
 #endif

@@ -66,7 +66,7 @@ static int tostring_lua(lua_State *L)
 
     // add '<message>'
     lauxh_pushref(L, errm->ref_msg);
-    le_tostring(L, -1);
+    lua_error_tostring(L, -1);
     luaL_addvalue(&b);
 
     luaL_pushresult(&b);
@@ -86,7 +86,7 @@ static int gc_lua(lua_State *L)
 
 static int new_lua(lua_State *L)
 {
-    return le_new_message(L, 1);
+    return lua_error_new_message(L, 1);
 }
 
 LUALIB_API int le_open_error_message(lua_State *L)
