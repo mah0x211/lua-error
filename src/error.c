@@ -28,8 +28,8 @@ static int index_lua(lua_State *L)
     static const char *const fields[] = {
         "message", "type", "code", "op", NULL,
     };
-    le_error_t *err = luaL_checkudata(L, 1, LE_ERROR_MT);
-    int idx         = luaL_checkoption(L, 2, NULL, fields);
+    lua_error_t *err = luaL_checkudata(L, 1, LUA_ERROR_MT);
+    int idx          = luaL_checkoption(L, 2, NULL, fields);
 
     switch (idx) {
     case 0:
@@ -44,7 +44,7 @@ static int index_lua(lua_State *L)
         int code = -1;
         if (err->ref_type != LUA_NOREF) {
             lauxh_pushref(L, err->ref_type);
-            code = ((le_error_type_t *)lua_touserdata(L, -1))->code;
+            code = ((lua_error_type_t *)lua_touserdata(L, -1))->code;
             lua_pop(L, 1);
         }
         lua_pushinteger(L, code);
@@ -55,7 +55,7 @@ static int index_lua(lua_State *L)
         if (err->ref_msg != LUA_NOREF) {
             lauxh_pushref(L, err->ref_msg);
             lauxh_pushref(
-                L, ((le_error_message_t *)lua_touserdata(L, -1))->ref_op);
+                L, ((lua_error_message_t *)lua_touserdata(L, -1))->ref_op);
             return 1;
         }
     }
@@ -65,11 +65,11 @@ static int index_lua(lua_State *L)
 
 static int tostring_lua(lua_State *L)
 {
-    le_error_t *err          = luaL_checkudata(L, 1, LE_ERROR_MT);
-    le_error_message_t *errm = NULL;
-    le_error_type_t *errt    = NULL;
-    int ref_typemsg          = LUA_NOREF;
-    luaL_Buffer b            = {0};
+    lua_error_t *err          = luaL_checkudata(L, 1, LUA_ERROR_MT);
+    lua_error_message_t *errm = NULL;
+    lua_error_type_t *errt    = NULL;
+    int ref_typemsg           = LUA_NOREF;
+    luaL_Buffer b             = {0};
 
     lauxh_pushref(L, err->ref_msg);
     errm = lua_touserdata(L, -1);
@@ -161,7 +161,7 @@ static int tostring_lua(lua_State *L)
 
 static int gc_lua(lua_State *L)
 {
-    le_error_t *err = lua_touserdata(L, 1);
+    lua_error_t *err = lua_touserdata(L, 1);
 
     err->ref_msg       = lauxh_unref(L, err->ref_msg);
     err->ref_where     = lauxh_unref(L, err->ref_where);
@@ -180,7 +180,7 @@ static int new_lua(lua_State *L)
 static int toerror_lua(lua_State *L)
 {
     // return passed error object
-    if (lauxh_isuserdataof(L, 1, LE_ERROR_MT)) {
+    if (lauxh_isuserdataof(L, 1, LUA_ERROR_MT)) {
         lua_settop(L, 1);
         return 1;
     }
@@ -191,7 +191,7 @@ static int toerror_lua(lua_State *L)
 
 static int unwrap_lua(lua_State *L)
 {
-    le_error_t *err = luaL_checkudata(L, 1, LE_ERROR_MT);
+    lua_error_t *err = luaL_checkudata(L, 1, LUA_ERROR_MT);
 
     lua_settop(L, 1);
     lauxh_pushref(L, err->ref_wrap);
@@ -206,11 +206,11 @@ static int cause_lua(lua_State *L)
     lua_settop(L, 1);
     if (lua_isnoneornil(L, 1)) {
         lua_pushnil(L);
-    } else if (lauxh_isuserdataof(L, 1, LE_ERROR_MT)) {
-        lauxh_pushref(L, ((le_error_t *)lua_touserdata(L, 1))->ref_msg);
+    } else if (lauxh_isuserdataof(L, 1, LUA_ERROR_MT)) {
+        lauxh_pushref(L, ((lua_error_t *)lua_touserdata(L, 1))->ref_msg);
         is_msg = 1;
     } else {
-        is_msg = lauxh_isuserdataof(L, 1, LE_ERROR_MESSAGE_MT);
+        is_msg = lauxh_isuserdataof(L, 1, LUA_ERROR_MESSAGE_MT);
     }
 
     lua_pushboolean(L, is_msg);
@@ -219,20 +219,20 @@ static int cause_lua(lua_State *L)
 
 static int is_lua(lua_State *L)
 {
-    le_error_t *err          = NULL;
-    le_error_message_t *errm = NULL;
-    size_t len               = 0;
-    const char *target       = NULL;
-    void *label              = &&CMP_MESSAGE;
+    lua_error_t *err          = NULL;
+    lua_error_message_t *errm = NULL;
+    size_t len                = 0;
+    const char *target        = NULL;
+    void *label               = &&CMP_MESSAGE;
 
     // do nothing if target is nil or first argument is not an error object
-    if (lua_isnoneornil(L, 2) || !lauxh_isuserdataof(L, 1, LE_ERROR_MT)) {
+    if (lua_isnoneornil(L, 2) || !lauxh_isuserdataof(L, 1, LUA_ERROR_MT)) {
         lua_pushnil(L);
         return 1;
     }
     lua_settop(L, 2);
     lua_insert(L, 1);
-    err = (le_error_t *)lua_touserdata(L, -1);
+    err = (lua_error_t *)lua_touserdata(L, -1);
 
     // check target argument
     switch (lua_type(L, 1)) {
@@ -242,12 +242,12 @@ static int is_lua(lua_State *L)
         break;
 
     case LUA_TUSERDATA:
-        if (lauxh_isuserdataof(L, 1, LE_ERROR_MT)) {
+        if (lauxh_isuserdataof(L, 1, LUA_ERROR_MT)) {
             label = &&CMP_ERROR;
-        } else if (lauxh_isuserdataof(L, 1, LE_ERROR_TYPE_MT)) {
+        } else if (lauxh_isuserdataof(L, 1, LUA_ERROR_TYPE_MT)) {
             // compare with error.type
             label = &&CMP_ERROR_TYPE;
-        } else if (lauxh_isuserdataof(L, 1, LE_ERROR_MESSAGE_MT)) {
+        } else if (lauxh_isuserdataof(L, 1, LUA_ERROR_MESSAGE_MT)) {
             // compare with error.message
             label = &&CMP_ERROR_MESSAGE;
         }
@@ -320,10 +320,10 @@ UNWRAP:
 
 static int typeof_lua(lua_State *L)
 {
-    if (lauxh_ismetatableof(L, 1, LE_ERROR_MT)) {
-        le_error_t *err = lua_touserdata(L, 1);
+    if (lauxh_ismetatableof(L, 1, LUA_ERROR_MT)) {
+        lua_error_t *err = lua_touserdata(L, 1);
         lauxh_pushref(L, err->ref_type);
-    } else if (lauxh_ismetatableof(L, 1, LE_ERROR_TYPE_MT)) {
+    } else if (lauxh_ismetatableof(L, 1, LUA_ERROR_TYPE_MT)) {
         lua_settop(L, 1);
     } else {
         lua_pushnil(L);
@@ -334,7 +334,7 @@ static int typeof_lua(lua_State *L)
 static int debug_lua(lua_State *L)
 {
     lua_pushboolean(L, lauxh_checkboolean(L, 1));
-    lua_setfield(L, LUA_REGISTRYINDEX, LE_ERROR_DEBUG_FLG);
+    lua_setfield(L, LUA_REGISTRYINDEX, LUA_ERROR_DEBUG_FLG);
     return 0;
 }
 
@@ -376,7 +376,7 @@ LUALIB_API int luaopen_error(lua_State *L)
     };
 
     // create metatable
-    luaL_newmetatable(L, LE_ERROR_MT);
+    luaL_newmetatable(L, LUA_ERROR_MT);
     // lock metatable
     lauxh_pushnum2tbl(L, "__metatable", -1);
     // metamethods
@@ -387,7 +387,7 @@ LUALIB_API int luaopen_error(lua_State *L)
 
     // set default debug flag to false
     lua_pushboolean(L, 0);
-    lua_setfield(L, LUA_REGISTRYINDEX, LE_ERROR_DEBUG_FLG);
+    lua_setfield(L, LUA_REGISTRYINDEX, LUA_ERROR_DEBUG_FLG);
 
     // export funcs
     lua_newtable(L);

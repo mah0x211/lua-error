@@ -33,8 +33,8 @@ static int index_lua(lua_State *L)
     static const char *const fields[] = {
         "new", "name", "message", "code", NULL,
     };
-    le_error_type_t *errt = luaL_checkudata(L, 1, LE_ERROR_TYPE_MT);
-    int idx               = luaL_checkoption(L, 2, NULL, fields);
+    lua_error_type_t *errt = luaL_checkudata(L, 1, LUA_ERROR_TYPE_MT);
+    int idx                = luaL_checkoption(L, 2, NULL, fields);
 
     switch (idx) {
     case 0:
@@ -59,7 +59,7 @@ static int index_lua(lua_State *L)
 
 static int tostring_lua(lua_State *L)
 {
-    le_error_type_t *errt = luaL_checkudata(L, 1, LE_ERROR_TYPE_MT);
+    lua_error_type_t *errt = luaL_checkudata(L, 1, LUA_ERROR_TYPE_MT);
 
     lua_settop(L, 1);
     lauxh_pushref(L, errt->ref_name);
@@ -71,7 +71,7 @@ static int tostring_lua(lua_State *L)
 
 static int gc_lua(lua_State *L)
 {
-    le_error_type_t *errt = lua_touserdata(L, 1);
+    lua_error_type_t *errt = lua_touserdata(L, 1);
 
     errt->ref_name = lauxh_unref(L, errt->ref_name);
 
@@ -121,7 +121,7 @@ LUALIB_API int le_open_error_type(lua_State *L)
     };
 
     // create metatable
-    luaL_newmetatable(L, LE_ERROR_TYPE_MT);
+    luaL_newmetatable(L, LUA_ERROR_TYPE_MT);
     // lock metatable
     lauxh_pushnum2tbl(L, "__metatable", -1);
     // metamethods
