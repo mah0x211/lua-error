@@ -249,16 +249,14 @@ static inline void push_format_string(lua_State *L, const char *fmt, int type,
         break;
 
     case 's': // char * (string)
-        if (lua_type(L, arg_idx) == LUA_TBOOLEAN) {
-            val.s = lua_toboolean(L, arg_idx) ? "true" : "false";
-        } else {
-            luaL_checktype(L, arg_idx, LUA_TSTRING);
-            val.s = lua_tostring(L, arg_idx);
-        }
+    {
+        int top = lua_gettop(L);
+        val.s   = lauxh_tostring(L, arg_idx);
         if (asprintf(&mem, fmt, val.s) == -1) {
             luaL_error(L, "failed to asprintf: %s", strerror(errno));
         }
-        break;
+        lua_settop(L, top);
+    } break;
 
     case 'p': // void * (pointer)
         val.p = lua_topointer(L, arg_idx);
