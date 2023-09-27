@@ -151,6 +151,29 @@ print(err == error.toerror('my error2')) -- false
 ```
 
 
+## err = error.format( fmt [, ..., [, wrap [, level [, traceback]]]] )
+
+equivalent to the `error.new` function, but the `message` argument is formatted with `snprintf`.
+
+the format specifiers are the same as `snprintf` of the C standard library except for the following specifiers.
+
+- flags: `#`, `0`, `-`, `+`, `space`
+- width: `number`, `*`
+- precision: `number`, `*`
+- length: `hh`, `h`, `l`, `ll`, `j`, `z`, `t`, `L`
+- specifiers: `d`, `i`, `o`, `u`, `x`, `X`, `e`, `E`, `f`, `F`, `g`, `G`, `a`, `A`, `c`, `s`, `p`, `m`, `%`
+
+please see the manual page of `man 3 printf` for more information.
+
+```lua
+local error = require('error')
+local err1 = error.format('my error: %s', 'hello')
+print(err) -- ./example.lua:2: in main chunk: my error: hello
+local err2 = error.format('%dnd error', 2, err1)
+print(err2) -- ./example.lua:4: in main chunk: 2nd error
+            -- ./example.lua:2: in main chunk: my error: hello
+```
+
 ## msg, is_msg = error.cause( err )
 
 if `err` is `error` object, return an `error.message` object associated with `err`. otherwise, return first argument.

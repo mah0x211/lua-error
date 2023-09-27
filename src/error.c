@@ -172,6 +172,287 @@ static int gc_lua(lua_State *L)
     return 0;
 }
 
+typedef struct {
+    int allocd;
+    char *mem;
+    union {
+        lua_Integer i;
+        lua_Number d;
+        const char *s;
+    } val;
+} format_arg_t;
+
+static int push_string(lua_State *L)
+{
+    char *str = (char *)lua_topointer(L, 1);
+    lua_pushstring(L, str);
+    return 1;
+}
+
+static inline void push_format_string(lua_State *L, const char *fmt, int type,
+                                      int arg_idx)
+{
+    union {
+        lua_Integer i;
+        lua_Number d;
+        const char *s;
+        const void *p;
+    } val;
+    char *mem = NULL;
+    int rc    = 0;
+
+    switch (type) {
+    case 'd': // int (decimal)
+    case 'i': // int (decimal) (same as 'd')
+    case 'o': // unsigned int (octal)
+    case 'u': // unsigned int (decimal)
+    case 'x': // unsigned int (hexadecimal)
+    case 'X': // unsigned int (hexadecimal) (uppercase)
+        if (lua_type(L, arg_idx) == LUA_TBOOLEAN) {
+            val.i = lua_toboolean(L, arg_idx);
+        } else {
+            val.i = luaL_checkinteger(L, arg_idx);
+        }
+        if (asprintf(&mem, fmt, val.i) == -1) {
+            luaL_error(L, "failed to asprintf: %s", strerror(errno));
+        }
+        break;
+
+    case 'c': // int (character)
+        if (lua_type(L, arg_idx) == LUA_TSTRING) {
+            size_t slen   = 0;
+            const char *s = lua_tolstring(L, arg_idx, &slen);
+            if (slen > 1) {
+                luaL_argerror(L, arg_idx, "string length <=1 expected");
+            }
+            val.i = *s;
+        } else {
+            val.i = luaL_checkinteger(L, arg_idx);
+        }
+        if (asprintf(&mem, fmt, val.i) == -1) {
+            luaL_error(L, "failed to asprintf: %s", strerror(errno));
+        }
+        break;
+
+    case 'e': // double (scientific)
+    case 'E': // double (scientific) (uppercase)
+    case 'f': // double (decimal)
+    case 'F': // double (decimal) (uppercase)
+    case 'g': // double (scientific or decimal)
+    case 'G': // double (scientific or decimal) (uppercase)
+    case 'a': // double (hexadecimal) (C99)
+    case 'A': // double (hexadecimal) (C99) (uppercase)
+        val.d = luaL_checknumber(L, arg_idx);
+        if (asprintf(&mem, fmt, val.d) == -1) {
+            luaL_error(L, "failed to asprintf: %s", strerror(errno));
+        }
+        break;
+
+    case 's': // char * (string)
+        if (lua_type(L, arg_idx) == LUA_TBOOLEAN) {
+            val.s = lua_toboolean(L, arg_idx) ? "true" : "false";
+        } else {
+            luaL_checktype(L, arg_idx, LUA_TSTRING);
+            val.s = lua_tostring(L, arg_idx);
+        }
+        if (asprintf(&mem, fmt, val.s) == -1) {
+            luaL_error(L, "failed to asprintf: %s", strerror(errno));
+        }
+        break;
+
+    case 'p': // void * (pointer)
+        val.p = lua_topointer(L, arg_idx);
+        if (asprintf(&mem, fmt, val.p) == -1) {
+            luaL_error(L, "failed to asprintf: %s", strerror(errno));
+        }
+        break;
+    }
+
+    lua_pushcfunction(L, push_string);
+    lua_pushlightuserdata(L, mem);
+    rc = lua_pcall(L, 1, 1, 0);
+    // free allocated string
+    free(mem);
+
+    if (rc != 0) {
+        // rethrow error with error message in stack top
+        lua_error(L);
+    }
+}
+
+static inline int uint2str(lua_State *L, char *buf, size_t len,
+                           const char *placeholder, const int narg, int idx)
+{
+    if (idx > narg) {
+        luaL_error(L,
+                   "not enough arguments for placeholder '%s' in format string",
+                   placeholder);
+    }
+
+    luaL_checktype(L, idx, LUA_TNUMBER);
+    // convert argument to string as integer
+    return snprintf(buf, len, "%d", (int)lua_tonumber(L, idx));
+}
+
+static int format_lua(lua_State *L)
+{
+    int narg         = lua_gettop(L);
+    const char *fmt  = luaL_checkstring(L, 1);
+    const char *head = fmt;
+    const char *cur  = head;
+    int nextarg      = 1;
+    int top          = 0;
+
+    // parse format specifiers
+    while (*cur) {
+        if (*cur == '%') {
+            char buf[255]     = {0};
+            size_t blen       = sizeof(buf);
+            char *placeholder = buf;
+
+#define COPY2PLACEHOLDER(str, len)                                             \
+    do {                                                                       \
+        size_t slen = (len);                                                   \
+        if (slen >= blen) {                                                    \
+            return luaL_error(L,                                               \
+                              "each placeholder must be less than %d "         \
+                              "characters in format string '%s'",              \
+                              sizeof(placeholder), placeholder);               \
+        }                                                                      \
+        blen -= slen;                                                          \
+        memcpy(placeholder, (str), slen);                                      \
+        placeholder += slen;                                                   \
+    } while (0)
+
+            if (cur[1] == '%') {
+                lua_pushlstring(L, head, cur - head + 1);
+                // skip '%%' escape sequence
+                cur += 2;
+                head = cur;
+                continue;
+            }
+
+            // push leading format string
+            if (cur != head) {
+                lua_pushlstring(L, head, cur - head);
+            }
+            fmt  = cur;
+            head = cur;
+            cur++;
+
+            // flags field
+            while (strchr("#I0- +'", *cur)) {
+                cur++;
+            }
+
+            // int n_bits = sizeof(int) * 8; // int 型のビット数
+            // int max_digits = n_bits / 3;  // 推定された最大桁数
+            // int buffer_size = max_digits + 2 + 1;  //
+            // 符号と終端のヌル文字を考慮 余裕を持たせるために +2
+#define DYNSIZE (sizeof(int) * CHAR_BIT / 3 + 3)
+
+            // width field
+            while (strchr("1234567890*", *cur)) {
+                if (*cur == '*') {
+                    int wlen              = DYNSIZE;
+                    const char w[DYNSIZE] = {0};
+
+                    // copy leading format string
+                    COPY2PLACEHOLDER(head, cur - head);
+                    // skip '*'
+                    head = cur + 1;
+
+                    // get width from argument
+                    nextarg++;
+                    wlen = uint2str(L, (char *)w, (size_t)wlen, fmt, narg,
+                                    nextarg);
+                    // copy it to placeholder
+                    COPY2PLACEHOLDER(w, wlen);
+                }
+                cur++;
+            }
+
+            // precision field
+            if (*cur == '.') {
+                // skip '.'
+                cur++;
+                while (strchr("1234567890*", *cur)) {
+                    if (*cur == '*') {
+                        int wlen              = DYNSIZE;
+                        const char w[DYNSIZE] = {0};
+
+                        // copy leading format string
+                        COPY2PLACEHOLDER(head, cur - head);
+                        // skip '*'
+                        head = cur + 1;
+
+                        // get precision from argument
+                        nextarg++;
+                        wlen = uint2str(L, (char *)w, wlen, fmt, narg, nextarg);
+                        // copy it to placeholder
+                        COPY2PLACEHOLDER(w, wlen);
+                    }
+                    cur++;
+                }
+            }
+
+#undef DYNSIZE
+
+            // length modifier
+            if (strchr("hljztL", *cur)) {
+                cur++;
+            }
+
+            // type field
+            if (!strchr("diouxXeEfFgGaAcspm", *cur)) {
+                return luaL_error(L,
+                                  "unsupported type field at '%c' in "
+                                  "format string '%s'",
+                                  *cur, fmt);
+            }
+
+            // copy leading format string
+            COPY2PLACEHOLDER(head, cur - head + 1);
+            head = cur + 1;
+
+            if (*cur == 'm') {
+                // printf %m is printed as strerror(errno) without params
+                lua_checkstack(L, 1);
+                lua_pushstring(L, strerror(errno));
+            } else {
+                nextarg++;
+                if (nextarg > narg) {
+                    return luaL_error(L,
+                                      "not enough arguments for placeholder "
+                                      "'%s' in format string",
+                                      buf);
+                }
+                push_format_string(L, buf, *cur, nextarg);
+            }
+        }
+        cur++;
+    }
+
+#undef COPY2PLACEHOLDER
+
+    // push trailing format string
+    if (cur > head) {
+        lua_pushlstring(L, head, cur - head);
+    }
+
+    // concat all strings
+    lua_concat(L, lua_gettop(L) - narg);
+    // replace format string with concatenated string
+    lua_replace(L, 1);
+    // remove all format arguments
+    for (top = 1; nextarg < narg; top++) {
+        nextarg++;
+        lua_insert(L, 2);
+    }
+    lua_settop(L, top);
+    return lua_error_new(L, 1);
+}
+
 static int new_lua(lua_State *L)
 {
     return lua_error_new(L, 1);
@@ -372,6 +653,7 @@ LUALIB_API int luaopen_error(lua_State *L)
         {"unwrap",  unwrap_lua },
         {"toerror", toerror_lua},
         {"new",     new_lua    },
+        {"format",  format_lua },
         {NULL,      NULL       }
     };
 
