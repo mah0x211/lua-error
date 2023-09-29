@@ -189,8 +189,97 @@ static int push_string(lua_State *L)
     return 1;
 }
 
-static inline void push_format_string(lua_State *L, const char *fmt, int type,
-                                      int arg_idx)
+static int inline get_utf8len(unsigned char *s)
+{
+    if ((*s & 0x80) == 0) {
+        // ASCII
+        return 1;
+    } else if ((*s & 0xE0) == 0xC0) {
+        // 110xxxxx 10xxxxxx
+        return 2;
+    } else if ((*s & 0xF0) == 0xE0) {
+        // 1110xxxx 10xxxxxx 10xxxxxx
+        return 3;
+    } else if ((*s & 0xF8) == 0xF0) {
+        // 11110xxx 10xxxxxx 10xxxxxx 10xxxxxx
+        return 4;
+    }
+    // invalid byte sequence
+    return 1;
+}
+
+static void push_quoted_string(lua_State *L, int arg_idx)
+{
+    int top          = lua_gettop(L);
+    size_t len       = 0;
+    unsigned char *s = (unsigned char *)lauxh_tolstring(L, arg_idx, &len);
+    luaL_Buffer b    = {};
+
+    luaL_buffinit(L, &b);
+    luaL_addchar(&b, '"');
+    while (len--) {
+        int utf8len = get_utf8len(s);
+        if (utf8len > 1) {
+            luaL_addlstring(&b, (char *)s, utf8len);
+            s += utf8len;
+            len -= utf8len - 1;
+            continue;
+        }
+
+        if (*s == '"' || *s == '\\') {
+            luaL_addchar(&b, '\\');
+            luaL_addchar(&b, *s);
+        } else if (!iscntrl(*s)) {
+            luaL_addchar(&b, *s);
+        } else {
+            switch (*s) {
+            case 0:
+                luaL_addstring(&b, "\\0");
+                break;
+            case 7:
+                luaL_addstring(&b, "\\a");
+                break;
+            case 8:
+                luaL_addstring(&b, "\\b");
+                break;
+            case 9:
+                luaL_addstring(&b, "\\t");
+                break;
+            case 10:
+                luaL_addstring(&b, "\\n");
+                break;
+            case 11:
+                luaL_addstring(&b, "\\v");
+                break;
+            case 12:
+                luaL_addstring(&b, "\\f");
+                break;
+            case 13:
+                luaL_addstring(&b, "\\r");
+                break;
+
+            default: {
+                char buf[10];
+                if (!isdigit(*(s + 1))) {
+                    snprintf(buf, sizeof(buf), "\\%d", (int)*s);
+                } else {
+                    snprintf(buf, sizeof(buf), "\\%03d", (int)*s);
+                }
+                luaL_addstring(&b, buf);
+            } break;
+            }
+        }
+        s++;
+    }
+    luaL_addchar(&b, '"');
+    luaL_pushresult(&b);
+    lua_replace(L, top + 1);
+    lua_settop(L, top + 1);
+    return;
+}
+
+static void push_format_string(lua_State *L, const char *fmt, int type,
+                               int arg_idx)
 {
     union {
         lua_Integer i;
@@ -248,8 +337,7 @@ static inline void push_format_string(lua_State *L, const char *fmt, int type,
         }
         break;
 
-    case 's': // char * (string)
-    {
+    case 's': { // any (string)
         int top = lua_gettop(L);
         val.s   = lauxh_tostring(L, arg_idx);
         if (asprintf(&mem, fmt, val.s) == -1) {
@@ -264,6 +352,13 @@ static inline void push_format_string(lua_State *L, const char *fmt, int type,
             luaL_error(L, "failed to asprintf: %s", strerror(errno));
         }
         break;
+
+    case 'q': // any (quoted string)
+        if (fmt[0] != '%' || fmt[1] != 'q' || fmt[2]) {
+            luaL_error(L, "specifier '%%q' cannot have modifiers");
+        }
+        push_quoted_string(L, arg_idx);
+        return;
     }
 
     lua_pushcfunction(L, push_string);
@@ -343,10 +438,9 @@ static int format_lua(lua_State *L)
                 cur++;
             }
 
-            // int n_bits = sizeof(int) * 8; // int 型のビット数
-            // int max_digits = n_bits / 3;  // 推定された最大桁数
-            // int buffer_size = max_digits + 2 + 1;  //
-            // 符号と終端のヌル文字を考慮 余裕を持たせるために +2
+            // int n_bits = sizeof(int) * 8;
+            // int max_digits = n_bits / 3;
+            // int buffer_size = max_digits + 2 + 1;
 #define DYNSIZE (sizeof(int) * CHAR_BIT / 3 + 3)
 
             // width field
@@ -402,7 +496,7 @@ static int format_lua(lua_State *L)
             }
 
             // type field
-            if (!strchr("diouxXeEfFgGaAcspm", *cur)) {
+            if (!strchr("diouxXeEfFgGaAcspqm", *cur)) {
                 return luaL_error(L,
                                   "unsupported type field at '%c' in "
                                   "format string '%s'",

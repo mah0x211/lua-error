@@ -47,5 +47,9 @@ function testcase.format()
     -- test that print errno: m
     v = error.format("%m")
     assert(v ~= nil)
+
+    -- test that quoted string: q
+    v = error.format("%q", 'a\t' .. string.char(0) .. '1\bx\ad\f\n"\rあ\v𠀋')
+    assert.match(v, '\"a\\t\\01\\bx\\ad\\f\\n\\"\\rあ\\v𠀋"')
 end
 
