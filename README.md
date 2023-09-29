@@ -115,7 +115,9 @@ the format specifiers are the same as `snprintf` of the C standard library excep
 - width: `number`, `*`
 - precision: `number`, `*`
 - length: `hh`, `h`, `l`, `ll`, `j`, `z`, `t`, `L`
-- specifiers: `d`, `i`, `o`, `u`, `x`, `X`, `e`, `E`, `f`, `F`, `g`, `G`, `a`, `A`, `c`, `s`, `p`, `m`, `%`
+- specifiers: `d`, `i`, `o`, `u`, `x`, `X`, `e`, `E`, `f`, `F`, `g`, `G`, `a`, `A`, `c`, `s`, `p`, `q`, `m`, `%`
+    - the format specifier `s` converts the argument to a string.
+    - the format specifier `q` converts the argument to a string and escaping the control characters and double quotes `"` with a backslash `\`, and then enclosing it in double quotes `"`.
 
 please see the manual page of `man 3 printf` for more information.
 
