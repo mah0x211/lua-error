@@ -50,7 +50,7 @@ error.debug(true)
 - `mode:boolean`: `true` to enable the debug mode, or `false` to disable it.
 
 
-## err = error.new( message [, wrap [, level [, traceback]]] )
+## err = error.new( message [, werr [, level [, traceback]]] )
 
 creates a new error object.
 
@@ -65,7 +65,7 @@ print(err)
 
 - `message:error.message|any`: a message value.  
   - if it is not `error.message`, create `error.message` with that message.
-- `wrap:error`: `nil` or other error objects to be included in the new error object.
+- `werr:error`: `nil` or other error objects to be included in the new error object.
 - `level:integer`: specifies how to get the error position. (default: `1`)
 - `traceback:boolean`: get the stack traceback and keep it in the error object. (default: `false`)
 
@@ -91,7 +91,7 @@ print(err.op) -- equivalent to err.message.op
 - `op:string`: the `op` property of the `error.message` object.
 
 
-## err = error.toerror( message [, wrap [, level [, traceback]]] )
+## err = error.toerror( message [, werr [, level [, traceback]]] )
 
 equivalent to the `error.new` function, but if the `message` is an `error` object, it will be returned.
 
@@ -105,9 +105,9 @@ print(err == error.toerror('my error2')) -- false
 ```
 
 
-## err = error.format( fmt [, ..., [, wrap [, level [, traceback]]]] )
+## err = error.format( fmt [, ..., [, werr [, level [, traceback]]]] )
 
-equivalent to the `error.new` function, but the `message` argument is formatted with `snprintf`.
+equivalent to the `error.new` function, but the `message` argument is formatted with `snprintf`. And, if the `werr` is not an `error` object, it will be concatenated with the formatted message.
 
 the format specifiers are the same as `snprintf` of the C standard library except for the following specifiers.
 
@@ -348,7 +348,7 @@ print(error.type.get('my_error_type')) -- nil
 - `ok:boolean`: `true` on success.
 
 
-## err = errt:new( [message [, wrap [, level [, traceback]]]] )
+## err = errt:new( [message [, werr [, level [, traceback]]]] )
 
 equivalent to the `error.new` function except message argument can be set to `nil`.  
 it also sets the `error.type` object to the `error` object.
@@ -601,7 +601,7 @@ load the lua-error module.
 
 ## int lua_error_new(lua_State *L, int msgidx)
 
-create a new error that equivalent to `error.new(message [, wrap [, level [, traceback]]])` function.
+create a new error that equivalent to `error.new(message [, werr [, level [, traceback]]])` function.
 
 
 ## int lua_error_new_type(lua_State *L, int nameidx)
@@ -611,7 +611,7 @@ create a new error type that equivalent to `error.type.new(name [, code [, messa
 
 ## int lua_error_new_typed_error(lua_State *L, int typeidx)
 
-create a new typed error that equivalent to `<myerr>:new([msg [, wrap [, level [, traceback]]]])` method.
+create a new typed error that equivalent to `<myerr>:new([msg [, werr [, level [, traceback]]]])` method.
 
 
 ## int lua_error_registry_get(lua_State *L, const char *name)

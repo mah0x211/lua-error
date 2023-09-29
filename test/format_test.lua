@@ -12,6 +12,12 @@ function testcase.format()
     assert.re_match(v, 'hello (\\(nil\\)|0x[0-9a-f]+)')
     assert.equal(error.unwrap(v), hello_error)
 
+    -- test that the error object argument is concatenated into a message
+    -- string if it is not an error object
+    v = error.format('hello', 'error format')
+    assert.match(v, 'hello: error format')
+    assert.is_nil(error.unwrap(v))
+
     -- test that integer type: d, i, o, u, x, X
     v = error.format('%+d %-5i %05o %u %#x %#X %ld %d %d', 42, 42, 42, 42, 42,
                      42, 42, true, false)

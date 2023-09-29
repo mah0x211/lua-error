@@ -438,6 +438,15 @@ static int format_lua(lua_State *L)
         lua_pushlstring(L, head, cur - head);
     }
 
+    // if err argument is passed but not an error object, convert it to string
+    // and concat to error message
+    if (nextarg < narg && !lua_isnoneornil(L, nextarg + 1) &&
+        !lauxh_isuserdataof(L, nextarg + 1, LUA_ERROR_MT)) {
+        push_format_string(L, ": %s", 's', nextarg + 1);
+        lua_pushnil(L);
+        lua_replace(L, nextarg + 1);
+    }
+
     // concat all strings
     lua_concat(L, lua_gettop(L) - narg);
     // replace format string with concatenated string
@@ -448,6 +457,7 @@ static int format_lua(lua_State *L)
         lua_insert(L, 2);
     }
     lua_settop(L, top);
+
     return lua_error_new(L, 1);
 }
 
