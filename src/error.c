@@ -584,6 +584,62 @@ static int new_lua(lua_State *L)
     return lua_error_new(L, 1);
 }
 
+static int fatalf_lua(lua_State *L)
+{
+    int narg    = lua_gettop(L);
+    int level   = 1;
+    int fmt_idx = 1;
+    int lastarg = 1;
+
+    if (lua_type(L, 1) == LUA_TNUMBER) {
+        level = (int)lua_tointeger(L, 1);
+        fmt_idx++;
+        lastarg = fmt_idx;
+    }
+
+    if (level > 0) {
+        luaL_where(L, level);
+    }
+
+    // concat all strings
+    if (lua_type(L, fmt_idx) == LUA_TSTRING) {
+        lastarg = format_arguments(L, fmt_idx);
+        lua_concat(L, lua_gettop(L) - narg);
+        lastarg++;
+        if (lastarg <= narg) {
+            // add space between arguments
+            lua_pushliteral(L, " ");
+        }
+    }
+
+    // convert remaining arguments to string
+    for (int top = lua_gettop(L); lastarg <= narg; lastarg++) {
+        size_t len    = 0;
+        const char *s = NULL;
+        int newtop    = 0;
+
+        luaL_checkstack(L, 2, NULL);
+        s      = lauxh_tolstring(L, lastarg, &len);
+        newtop = lua_gettop(L);
+        if (newtop > top) {
+            // argument is converted to string
+            top = newtop;
+        } else {
+            // argument is string
+            lua_pushlstring(L, s, len);
+        }
+
+        if (lastarg < narg) {
+            // add space between arguments
+            lua_pushliteral(L, " ");
+        }
+    }
+    // concat all strings
+    lua_concat(L, lua_gettop(L) - narg);
+
+    return lua_error(L);
+}
+
 static int toerror_lua(lua_State *L)
 {
     // return passed error object
@@ -778,6 +834,7 @@ LUALIB_API int luaopen_error(lua_State *L)
         {"cause",   cause_lua  },
         {"unwrap",  unwrap_lua },
         {"toerror", toerror_lua},
+        {"fatalf",  fatalf_lua },
         {"new",     new_lua    },
         {"format",  format_lua },
         {NULL,      NULL       }
