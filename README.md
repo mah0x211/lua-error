@@ -130,6 +130,23 @@ print(err2) -- ./example.lua:4: in main chunk: 2nd error
             -- ./example.lua:2: in main chunk: my error: hello
 ```
 
+## error.fatalf( [level, fmt, ...] | [fmt, ...] )
+
+throw an error with a formatted message.
+
+- the formatting rules are the same as `error.format` function.
+- if the first argument is a number, it is used as the `level` argument. 
+    - the `level` represents the location on the call stack where the error occurred. (default: `1`)
+- if the `fmt` argument is a string, it is used as the format string and the `...` arguments are used as the arguments of the format string. 
+- if the `fmt` argument is not a string, all arguments will be converted to a string and concatenated with a space character.
+
+**Parameters**
+
+- `level:integer`: specifies how to get the error position. (default: `1`)
+- `fmt:string`: a format string.
+- `...:any`: arguments to be formatted.
+
+
 ## msg, is_msg = error.cause( err )
 
 if `err` is `error` object, return an `error.message` object associated with `err`. otherwise, return first argument.
