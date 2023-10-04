@@ -387,14 +387,28 @@ static inline int uint2str(lua_State *L, char *buf, size_t len,
     return snprintf(buf, len, "%d", (int)lua_tonumber(L, idx));
 }
 
-static int format_lua(lua_State *L)
+/**
+ * @brief format arguments and push them to the stack.
+ * - format argments must be placed after format string.
+ * - generated strings are pushed to the top of the stack.
+ * - you can concat them as follows:
+ *
+ *   int top = lua_gettop(L);
+ *   int lastargs = format_arguments(L, 1); // 1 is index of format string
+ *   lua_concat(L, lua_gettop(L) - top); // concat formatted strings
+ *
+ * @param L lua state
+ * @param fmt_idx index of format string
+ * @return int index of last used argument. if equal to fmt_idx, no argument was
+ * used.
+ */
+static int format_arguments(lua_State *L, const int fmt_idx)
 {
-    int narg         = lua_gettop(L);
-    const char *fmt  = luaL_checkstring(L, 1);
+    const int narg   = lua_gettop(L);
+    const char *fmt  = luaL_checkstring(L, fmt_idx);
     const char *head = fmt;
     const char *cur  = head;
-    int nextarg      = 1;
-    int top          = 0;
+    int nextarg      = fmt_idx;
 
     // parse format specifiers
     while (*cur) {
@@ -532,13 +546,23 @@ static int format_lua(lua_State *L)
         lua_pushlstring(L, head, cur - head);
     }
 
+    // index of last used argument
+    return nextarg;
+}
+
+static int format_lua(lua_State *L)
+{
+    const int narg = lua_gettop(L);
+    int lastarg    = format_arguments(L, 1);
+    int top        = 0;
+
     // if err argument is passed but not an error object, convert it to string
     // and concat to error message
-    if (nextarg < narg && !lua_isnoneornil(L, nextarg + 1) &&
-        !lauxh_isuserdataof(L, nextarg + 1, LUA_ERROR_MT)) {
-        push_format_string(L, ": %s", 's', nextarg + 1);
+    if (lastarg < narg && !lua_isnoneornil(L, lastarg + 1) &&
+        !lauxh_isuserdataof(L, lastarg + 1, LUA_ERROR_MT)) {
+        push_format_string(L, ": %s", 's', lastarg + 1);
         lua_pushnil(L);
-        lua_replace(L, nextarg + 1);
+        lua_replace(L, lastarg + 1);
     }
 
     // concat all strings
@@ -546,8 +570,8 @@ static int format_lua(lua_State *L)
     // replace format string with concatenated string
     lua_replace(L, 1);
     // remove all format arguments
-    for (top = 1; nextarg < narg; top++) {
-        nextarg++;
+    for (top = 1; lastarg < narg; top++) {
+        lastarg++;
         lua_insert(L, 2);
     }
     lua_settop(L, top);
