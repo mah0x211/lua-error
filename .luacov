@@ -1,0 +1,10 @@
+codefromstrings = false
+runreport = true
+deletestats = true
+modules = {
+    ["error"] = "error.lua",
+    ["error.fatalf"] = "lib/fatalf.lua",
+    ["error.is"] = "lib/is.lua",
+    ["error.message"] = "lib/message.lua",
+    ["error.type"] = "lib/type.lua",
+}

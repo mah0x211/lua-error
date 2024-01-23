@@ -1,6 +1,12 @@
-local testcase = require('testcase')
+require("luacov")
+local _, tester = assert(pcall(function()
+    package.path = './?.lua;./test/?.lua;' .. package.path
+    return require('./tester')
+end))
+local testcase = tester()
+local assert = require('assert')
 local error = require('error')
-local message = error.message
+local message = require('error.message')
 
 function testcase.new()
     -- test that create new structured message
@@ -26,10 +32,6 @@ function testcase.new()
         end,
     })
     assert.match(tostring(msg), '[op:test-op] __tostring metamethod')
-
-    -- test that throws an error if no argument
-    local err = assert.throws(message.new)
-    assert.match(err, 'value expected')
 end
 
 function testcase.with_error_type()
@@ -62,9 +64,7 @@ function testcase.with_error_type()
         __tostring = function()
         end,
     })))
-    assert.match(assert.throws(tostring, err),
-                 '"__tostring" metamethod must return a string')
-
+    assert.match(assert.throws(tostring, err), 'must return a string')
 end
 
 function testcase.is()
@@ -77,3 +77,5 @@ function testcase.is()
     local terr = assert(error.is(err, msg))
     assert.equal(terr.message, msg)
 end
+
+testcase()

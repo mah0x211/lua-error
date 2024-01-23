@@ -54,7 +54,8 @@ jobs:
       name: Install Tools
       run: |
         sudo apt install lcov -y
-        luarocks install testcase
+        luarocks install luacov
+        luarocks install assert
         luarocks install unpack
     -
       name: Install
@@ -63,7 +64,7 @@ jobs:
     -
       name: Run Test
       run: |
-        testcase ./test/
+        lua ./test/testall.lua
     -
       name: Generate coverage reports
       run: |
