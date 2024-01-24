@@ -1,5 +1,10 @@
+require('luacov')
+local _, tester = assert(pcall(function()
+    package.path = './?.lua;./test/?.lua;' .. package.path
+    return require('./tester')
+end))
+local testcase = tester()
 local assert = require('assert')
-local testcase = require('testcase')
 local error = require('error')
 
 function testcase.format()
@@ -53,3 +58,4 @@ function testcase.format()
     assert.match(v, '\"a\\t\\01\\bx\\ad\\f\\n\\"\\rあ\\v𠀋"')
 end
 
+testcase()

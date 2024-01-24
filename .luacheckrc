@@ -1,7 +1,7 @@
-std = 'max'
+std = "max"
 include_files = {
-    'test/*_test.lua',
+    "error.lua",
+    "lib/*.lua",
+    "test/*_test.lua",
 }
-ignore = {
-    'assert',
-}
+ignore = {}

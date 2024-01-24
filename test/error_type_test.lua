@@ -1,5 +1,11 @@
+require('luacov')
+local _, tester = assert(pcall(function()
+    package.path = './?.lua;./test/?.lua;' .. package.path
+    return require('./tester')
+end))
+local testcase = tester()
+local assert = require('assert')
 local unpack = require('unpack')
-local testcase = require('testcase')
 local error = require('error')
 local error_type = error.type
 
@@ -30,12 +36,12 @@ function testcase.new()
         -- invalid first letter
         {
             arg = ' my.error',
-            match = '#1 .+first letter to be alphabetic character',
+            match = '#1 .+format is "^%%a%[%%w_%.]%*$" expected',
         },
         -- contains invalid character
         {
             arg = 'my error',
-            match = [[#1 .+alphanumeric or '_' or '%.' characters expected]],
+            match = '#1 .+format is "^%%a%[%%w_%.]%*$" expected',
         },
         -- argument length too long
         {
@@ -149,7 +155,7 @@ function testcase.new_error()
 
     -- test that create new typed error without message
     err = t:new()
-    assert.match(tostring(err), '%[my.error:%-1] nil', false)
+    assert.match(tostring(err), '%[my.error:%-1] %(no message%)', false)
 
     -- test that throw error if name already exists
     err = assert.throws(error_type.new, 'my.error')
@@ -180,15 +186,15 @@ function testcase.new_error()
                 nil,
                 -1,
             },
-            match = '#3 .+uint8_t expected',
+            match = '#3 .+positive integer expected',
         },
         {
             arg = {
                 'hello',
                 nil,
-                256,
+                0,
             },
-            match = '#3 .+uint8_t expected',
+            match = '#3 .+positive integer expected',
         },
         -- invalid traceback argument
         {
@@ -213,15 +219,15 @@ function testcase.is()
     local str = 'hello error'
     local tbl = {
         err = 'hello error',
-        tostring = function(self, where)
-            return where .. self.err .. ' from tostring'
+        tostring = function(self)
+            return self.err .. ' from tostring'
         end,
     }
     local obj = setmetatable({
         err = 'hello error',
     }, {
-        __tostring = function(self, where)
-            return (where or '') .. self.err .. ' from __tostring'
+        __tostring = function(self)
+            return self.err .. ' from __tostring'
         end,
     })
     local err_str = error.new(str)
@@ -248,3 +254,4 @@ function testcase.typeof()
     assert.is_nil(error.typeof())
 end
 
+testcase()

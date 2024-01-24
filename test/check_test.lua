@@ -1,4 +1,9 @@
-local testcase = require('testcase')
+local _, tester = assert(pcall(function()
+    package.path = './?.lua;./test/?.lua;' .. package.path
+    return require('./tester')
+end))
+local testcase = tester()
+local assert = require('assert')
 local error_check = require('error').check
 
 local function testcall(checkfn, arg, idx, level, traceback)
@@ -10,7 +15,6 @@ local function invoke(...)
 end
 
 function testcase.noneornil()
-
     -- test that valid argument
     error_check.noneornil()
     error_check.noneornil(nil)
@@ -1103,3 +1107,5 @@ function testcase.pint64()
         assert.not_match(err, 'stack traceback:', false)
     end
 end
+
+testcase()

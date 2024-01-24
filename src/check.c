@@ -21,9 +21,10 @@
  *
  */
 
-#include "lua_error.h"
 #include <math.h>
 #include <stdint.h>
+// lua
+#include <lauxhlib.h>
 
 static inline const char *typename(lua_State *L, int type)
 {
@@ -122,12 +123,12 @@ static lua_Integer checkint(lua_State *L, const char *exp)
 #define stringer(x)        #x
 
 #define check_pintsize(L, size)                                                \
- do {                                                                          \
-  lua_Integer v = checkint(L, "pint" stringer(size));                          \
-  if (v < 1 || (uint64_t)v > tokenize3(UINT, size, _MAX)) {                    \
-   argerror(L, "pint" stringer(size), "an out of range value");                \
-  }                                                                            \
- } while (0)
+    do {                                                                       \
+        lua_Integer v = checkint(L, "pint" stringer(size));                    \
+        if (v < 1 || (uint64_t)v > tokenize3(UINT, size, _MAX)) {              \
+            argerror(L, "pint" stringer(size), "an out of range value");       \
+        }                                                                      \
+    } while (0)
 
 static int pint64_lua(lua_State *L)
 {
@@ -162,12 +163,12 @@ static int pint_lua(lua_State *L)
 }
 
 #define check_uintsize(L, size)                                                \
- do {                                                                          \
-  lua_Integer v = checkint(L, "uint" stringer(size));                          \
-  if (v < 0 || (uint64_t)v > tokenize3(UINT, size, _MAX)) {                    \
-   argerror(L, "uint" stringer(size), "an out of range value");                \
-  }                                                                            \
- } while (0)
+    do {                                                                       \
+        lua_Integer v = checkint(L, "uint" stringer(size));                    \
+        if (v < 0 || (uint64_t)v > tokenize3(UINT, size, _MAX)) {              \
+            argerror(L, "uint" stringer(size), "an out of range value");       \
+        }                                                                      \
+    } while (0)
 
 static int uint64_lua(lua_State *L)
 {
@@ -202,12 +203,13 @@ static int uint_lua(lua_State *L)
 }
 
 #define check_intsize(L, size)                                                 \
- do {                                                                          \
-  int64_t v = (int64_t)checkint(L, "int" stringer(size));                      \
-  if (v < tokenize3(INT, size, _MIN) || v > tokenize3(INT, size, _MAX)) {      \
-   argerror(L, "int" stringer(size), "an out of range value");                 \
-  }                                                                            \
- } while (0)
+    do {                                                                       \
+        int64_t v = (int64_t)checkint(L, "int" stringer(size));                \
+        if (v < tokenize3(INT, size, _MIN) ||                                  \
+            v > tokenize3(INT, size, _MAX)) {                                  \
+            argerror(L, "int" stringer(size), "an out of range value");        \
+        }                                                                      \
+    } while (0)
 
 static int int64_lua(lua_State *L)
 {
@@ -329,7 +331,7 @@ static int file_lua(lua_State *L)
     return 0;
 }
 
-LUALIB_API int le_open_error_check(lua_State *L)
+LUALIB_API int luaopen_error_check(lua_State *L)
 {
     struct luaL_Reg funcs[] = {
         {"file",      file_lua     },
