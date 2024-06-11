@@ -40,18 +40,19 @@ LUA_ERROR_API void lua_error_dostring(lua_State *L, const char *str, int argidx,
     int top  = lua_gettop(L);
     int narg = 0;
 
+    if (argidx < 0) {
+        // converts relative index to absolute index
+        argidx = top + argidx + 1;
+    }
+
     if (argidx > 0) {
-        if (argidx > top) {
-            // narg is greater than the number of stack elements
-            luaL_error(L,
-                       "bad argument #1 to 'lua_error_dostring' (argument "
-                       "index is is %d but the number of stack elements is %d)",
-                       argidx, top);
-        }
+        // confirms that the argument exists at the specified index
+        luaL_checkany(L, argidx);
         // calculates the number of arguments
         narg = top - argidx + 1;
     }
 
+    // evaluates the string as a Lua code
     if (luaL_loadstring(L, str)) {
         lua_error(L);
     } else if (narg) {
@@ -79,11 +80,6 @@ LUA_ERROR_API void lua_error_loadlib(lua_State *L, int level)
  */
 LUA_ERROR_API int lua_error_new_message(lua_State *L, int msgidx)
 {
-    int top = lua_gettop(L);
-
-    // converts msgidx to absolute index
-    msgidx = (msgidx < 0) ? top + msgidx + 1 : msgidx;
-    luaL_checkany(L, msgidx);
     // create message
     lua_error_dostring(L, "return require('error.message').new(...)", msgidx,
                        1);
@@ -102,12 +98,7 @@ LUA_ERROR_API int lua_error_new_message(lua_State *L, int msgidx)
  */
 LUA_ERROR_API int lua_error_new(lua_State *L, int msgidx)
 {
-    int top = lua_gettop(L);
-
-    // converts msgidx to absolute index
-    msgidx = (msgidx < 0) ? top + msgidx + 1 : msgidx;
-    luaL_checkany(L, msgidx);
-    // create error
+    // create new error
     lua_error_dostring(L, "return require('error').new(...)", msgidx, 1);
     return 1;
 }
@@ -124,12 +115,7 @@ LUA_ERROR_API int lua_error_new(lua_State *L, int msgidx)
  */
 LUA_ERROR_API int lua_error_format(lua_State *L, int fmtidx)
 {
-    int top = lua_gettop(L);
-
-    // converts fmtidx to absolute index
-    fmtidx = (fmtidx < 0) ? top + fmtidx + 1 : fmtidx;
-    luaL_checkany(L, fmtidx);
-    // create error
+    // create error with formatted message
     lua_error_dostring(L, "return require('error').format(...)", fmtidx, 1);
     return 1;
 }
@@ -177,10 +163,6 @@ LUA_ERROR_API int lua_error_registry_get(lua_State *L, const char *name)
  */
 LUA_ERROR_API int lua_error_new_type(lua_State *L, int nameidx)
 {
-    int top = lua_gettop(L);
-
-    // converts nameidx to absolute index
-    nameidx = (nameidx < 0) ? top + nameidx + 1 : nameidx;
     // create a new error type
     lua_error_dostring(L, "return require('error.type').new(...)", nameidx, 1);
     return 1;
@@ -198,10 +180,6 @@ LUA_ERROR_API int lua_error_new_type(lua_State *L, int nameidx)
  */
 LUA_ERROR_API int lua_error_new_typed_error(lua_State *L, int typeidx)
 {
-    int top = lua_gettop(L);
-
-    // converts typeidx to absolute index
-    typeidx = (typeidx < 0) ? top + typeidx + 1 : typeidx;
     // create a new typed error
     lua_error_dostring(L, "local t = ...; return t:new(select(2, ...))",
                        typeidx, 1);
