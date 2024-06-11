@@ -113,6 +113,28 @@ LUA_ERROR_API int lua_error_new(lua_State *L, int msgidx)
 }
 
 /**
+ * create a new error that equivalent to the following code;
+ *
+ *  error.format(fmt [, ... [, wrap [, level [, traceback]]]])
+ *
+ * push all arguments (including nil) onto the stack and call the API with
+ * the fmt index.
+ * the last argument must be placed at the top of the stack.
+ * this function removes all arguments from the stack.
+ */
+LUA_ERROR_API int lua_error_format(lua_State *L, int fmtidx)
+{
+    int top = lua_gettop(L);
+
+    // converts fmtidx to absolute index
+    fmtidx = (fmtidx < 0) ? top + fmtidx + 1 : fmtidx;
+    luaL_checkany(L, fmtidx);
+    // create error
+    lua_error_dostring(L, "return require('error').format(...)", fmtidx, 1);
+    return 1;
+}
+
+/**
  * delete a error type from registry that equivalent to the following code;
  *
  *  ok = error.type.del(name)
