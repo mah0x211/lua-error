@@ -13,9 +13,9 @@ description = {
 dependencies = {
     "lua >= 5.1",
     "lauxhlib >= 0.3.1",
-    "argexpected >= 0.1.0",
+    "argexpected >= 0.2.0",
     "metamodule >= 0.5.0",
-    "string-format-all >= 0.1.0",
+    "string-format-all >= 0.2.0",
 }
 build = {
     type = "make",

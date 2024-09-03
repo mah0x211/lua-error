@@ -18,13 +18,13 @@ function testcase.fatalf()
 
     -- test that error message is formatted with arguments
     err = assert.throws(fatalf, 'hello %p', 'error', {})
-    assert.re_match(err, 'hello (\\(nil\\)|0x[0-9a-f]+) table: 0x[0-9a-f]+')
+    assert.re_match(err, 'hello (\\(nil\\)|0x[0-9a-f]+) {}')
 
     -- test that level option can be specified at the first argument
     local ok
     ok, err = pcall(function()
         local function nestfn()
-            fatalf(2, 'hello %p', 'error', {})
+            fatalf(2, 'hello %p', 'error', '{}')
         end
         nestfn()
     end)
