@@ -258,6 +258,9 @@ print(error.is(err3, 'first error')) -- ./example.lua:3: in main chunk: first er
 -- get the err2 by error type
 print(error.is(err3, err2type)) -- ./example.lua:6: in main chunk: [seond_error_type:-1] second error\n./example.lua:3: in main chunk: first error
 
+-- get the err2 by error type name
+print(error.is(err3, 'seond_error_type')) -- ./example.lua:6: in main chunk: [seond_error_type:-1] second error\n./example.lua:3: in main chunk: first error
+
 -- it returns nil if message does not matches with any of error message
 print(error.is(err3, 'unknown message')) -- nil
 ```
@@ -266,6 +269,7 @@ print(error.is(err3, 'unknown message')) -- nil
 
 - `err:error`: `error` object.
 - `target:error|error.type|string|table`: `error` object, `error.type` object, or error message.
+    - if `target` is a `string`, search for the error type by name and use it if is found.
 
 **Returns**
 
