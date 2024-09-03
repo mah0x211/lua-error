@@ -20,8 +20,10 @@
 -- THE SOFTWARE.
 --
 --- assign to local
+local select = select
 local type = type
 local instanceof = require('metamodule').instanceof
+local get_error_type = require('error.type').get
 
 --- is_match_error_message returns true if err.message matches the target.
 --- @param err error
@@ -55,10 +57,17 @@ local function is_match_message(err, target)
     return err.message.message == target
 end
 
---- is extract the error that strictly matches the specified target from the error chain.
-local function is(err, target)
-    if not instanceof(err, 'error') or target == nil then
-        return nil
+--- is_error extract the error that strictly matches the specified target from the error chain.
+--- @param err error
+--- @param target string|error|error.type|error.message
+--- @return error?
+local function is_error(err, target)
+    if type(target) == 'string' then
+        -- determine the error type from the target string
+        local errtype = get_error_type(target)
+        if errtype then
+            target = errtype
+        end
     end
 
     local t = type(target)
@@ -80,6 +89,28 @@ local function is(err, target)
         -- unwrap
         err = err.wrap
     until err == nil
+end
+
+--- is extract the error that strictly matches the specified targets from the error chain.
+--- @param err error
+--- @param ... string|error|error.type|error.message
+--- @return error?
+local function is(err, ...)
+    if not instanceof(err, 'error') then
+        return nil
+    end
+
+    local n = select('#', ...)
+    local targets = {
+        ...,
+    }
+    for i = 1, n do
+        local target = targets[i]
+        local matched = target and is_error(err, target)
+        if matched then
+            return matched
+        end
+    end
 end
 
 return is
