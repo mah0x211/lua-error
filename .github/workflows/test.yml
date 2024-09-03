@@ -1,6 +1,11 @@
 name: test
 
-on: [push]
+on:
+    push:
+        paths-ignore:
+            - '**.md'
+            - 'LICENSE'
+
 
 jobs:
   luacheck:
@@ -34,7 +39,6 @@ jobs:
           - "5.2"
           - "5.3"
           - "5.4"
-          - "luajit-2.0.5"
           - "luajit-openresty"
     steps:
     -
@@ -71,7 +75,7 @@ jobs:
         sh ./covergen.sh
     -
       name: Upload coverage to Codecov
-      uses: codecov/codecov-action@v3
+      uses: codecov/codecov-action@v4
       with:
-        files: ./coverage/lcov.info
+        token: ${{ secrets.CODECOV_TOKEN }}
         flags: unittests
