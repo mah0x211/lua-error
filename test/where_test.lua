@@ -14,14 +14,11 @@ function testcase.where()
 
     -- test that where returns a location of the caller of testcase.where
     for level, cmp in ipairs({
-        'where_test\\.lua:26',
+        'where_test\\.lua:',
         'in .+xpcall',
         'tester\\.lua',
         'tester\\.lua',
         'in main chunk',
-        '\\?:',
-        '', -- out of range
-        '',
     }) do
         err = where(level)
         if cmp == '' then

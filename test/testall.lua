@@ -17,6 +17,7 @@ for _, filename in ipairs({
     'test/fatalf_test.lua',
     'test/format_test.lua',
     'test/message_test.lua',
+    'test/where_test.lua',
 }) do
     printf('@%s: ', filename)
     local ok, err = xpcall(function()

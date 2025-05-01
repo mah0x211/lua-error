@@ -32,6 +32,7 @@ local tostring = require('error.tostring')
 local new_message = require('error.message').new
 local getwhere = require('error.where')
 --- constants
+local IS_LUA51 = not _G.jit and match(_VERSION, '^Lua 5%.1')
 local INF_POS = math.huge
 local DEBUG_MODE = false
 
@@ -121,7 +122,15 @@ function Error:init(message, werr, level, trace)
                 'positive integer expected, got %q', level)
     argexpected(trace == nil or type(trace) == 'boolean', 4,
                 'boolean expected, got %q', trace)
+    -- +1 to skip getwhere() function
     level = 1 + (level or 1)
+
+    if IS_LUA51 then
+        -- NOTE: In Lua 5.1, tail call optimization removes stack frames,
+        -- so an additional +1 level adjustment is required to get the correct
+        -- caller info.
+        level = level + 1
+    end
 
     self.code = -1
     if instanceof(message, 'error.message') then
