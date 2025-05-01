@@ -31,11 +31,6 @@ static int where_lua(lua_State *L)
     lua_Debug ar  = {0};
     luaL_Buffer b = {0};
 
-#if !defined(LUA_LJDIR) && LUA_VERSION_NUM < 502
-    // NOTE: In Lua 5.1, stack level includes this c function
-    level += 1;
-#endif
-
     lua_settop(L, 1);
     luaL_buffinit(L, &b);
     luaL_where(L, level);

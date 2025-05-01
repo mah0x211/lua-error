@@ -1,11 +1,10 @@
 name: test
 
 on:
-    push:
-        paths-ignore:
-            - '**.md'
-            - 'LICENSE'
-
+  push:
+    paths-ignore:
+      - '**.md'
+      - 'LICENSE'
 
 jobs:
   luacheck:
@@ -18,10 +17,7 @@ jobs:
         submodules: 'true'
     -
       name: Setup Lua
-      uses: leafo/gh-actions-lua@v9
-    -
-      name: Setup Luarocks
-      uses: leafo/gh-actions-luarocks@v4
+      uses: mah0x211/setup-lua@v1
     -
       name: Install Tools
       run: luarocks install luacheck
@@ -35,11 +31,11 @@ jobs:
     strategy:
       matrix:
         lua-version:
-          - "5.1"
-          - "5.2"
-          - "5.3"
-          - "5.4"
-          - "luajit-openresty"
+          - "5.1.:latest"
+          - "5.2.:latest"
+          - "5.3.:latest"
+          - "5.4.:latest"
+          - "lj-v2.1:latest"
     steps:
     -
       name: Checkout
@@ -48,16 +44,13 @@ jobs:
         submodules: 'true'
     -
       name: Setup Lua ${{ matrix.lua-version }}
-      uses: leafo/gh-actions-lua@v9
+      uses: mah0x211/setup-lua@v1
       with:
-        luaVersion: ${{ matrix.lua-version }}
-    -
-      name: Setup Luarocks
-      uses: leafo/gh-actions-luarocks@v4
+        versions: ${{ matrix.lua-version }}
     -
       name: Install Tools
       run: |
-        sudo apt install lcov -y
+        sudo apt-get install llvm -y
         luarocks install luacov
         luarocks install assert
         luarocks install unpack
@@ -66,13 +59,9 @@ jobs:
       run: |
         luarocks make ERROR_COVERAGE=1
     -
-      name: Run Test
+      name: Run Test and Generate Coverage
       run: |
-        lua ./test/testall.lua
-    -
-      name: Generate coverage reports
-      run: |
-        sh ./covergen.sh
+        make coverage
     -
       name: Upload coverage to Codecov
       uses: codecov/codecov-action@v4
