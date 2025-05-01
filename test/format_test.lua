@@ -20,7 +20,12 @@ function testcase.format()
     -- test that the error object argument is concatenated into a message
     -- string if it is not an error object
     v = error.format('hello', 'error format')
-    assert.match(v, 'hello: error format')
+    assert.re_match(v, 'hello: error format$')
+    assert.is_nil(error.unwrap(v))
+
+    -- test that ignore last argument if it is nil
+    v = error.format('hello %s', 'world', nil, nil)
+    assert.re_match(v, 'hello world$')
     assert.is_nil(error.unwrap(v))
 
     -- test that integer type: d, i, o, u, x, X

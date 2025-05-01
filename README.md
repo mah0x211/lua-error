@@ -112,7 +112,7 @@ print(err == error.toerror('my error2')) -- false
 
 ## err = error.format( fmt [, ..., [, werr [, level [, traceback]]]] )
 
-equivalent to the `error.new` function, but the `message` argument is formatted with `lua-string-format` module. And, if the `werr` is not an `error` object, it will be concatenated with the formatted message.
+equivalent to the `error.new` function, but the `message` argument is formatted with `lua-string-format` module. And, if the `werr` is neither `nil` nor an `error` object, it will be appended to the formatted message.
 
 please see the https://github.com/mah0x211/lua-string-format for more details.
 

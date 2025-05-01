@@ -162,7 +162,7 @@ local function errorf(...)
     local s, unused = format(...)
     if not unused then
         return Error(s, nil, 2)
-    elseif not instanceof(unused[1], 'error') then
+    elseif unused[1] ~= nil and not instanceof(unused[1], 'error') then
         -- convert non-error object to string and append to message
         local v = unused[1]
         s = s .. ': ' .. (type(v) == 'string' and v or tostring(v))
