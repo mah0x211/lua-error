@@ -40,14 +40,9 @@ LUA_ERROR_API void lua_error_dostring(lua_State *L, const char *str, int argidx,
     int top  = lua_gettop(L);
     int narg = 0;
 
-#if LUA_VERSION_NUM < 502
-    argidx = (argidx > 0 || argidx <= LUA_REGISTRYINDEX) ?
-                 argidx :
-                 lua_gettop(L) + argidx + 1;
-#else
-    argidx = lua_absindex(L, argidx);
-
-#endif
+    if (argidx < 0 && argidx > LUA_REGISTRYINDEX) {
+        argidx = top + argidx + 1;
+    }
 
     if (argidx > 0) {
         // confirms that the argument exists at the specified index
