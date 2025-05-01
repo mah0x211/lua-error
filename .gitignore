@@ -2,3 +2,8 @@ coverage/
 *.gcda
 *.gcno
 *.profraw
+*.profdata
+*.so
+*.info
+*.out
+.*
