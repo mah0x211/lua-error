@@ -28,7 +28,7 @@
 #include <string.h>
 #include <unistd.h>
 // lua
-#include <lauxhlib.h>
+#include <lauxlib.h>
 #include <lua.h>
 
 #define LUA_ERROR_API            static inline
