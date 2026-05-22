@@ -24,7 +24,7 @@
 #include <math.h>
 #include <stdint.h>
 // lua
-#include <lauxhlib.h>
+#include "lauxhlib.h"
 
 static inline const char *typename(lua_State *L, int type)
 {
