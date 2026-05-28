@@ -18,7 +18,7 @@ dependencies = {
     "string-format-all >= 0.2.0",
 }
 build_dependencies = {
-    "luarocks-build-hooks >= 0.7.0",
+    "luarocks-build-hooks >= 0.8.0",
 }
 build = {
     type = "hooks",
@@ -44,7 +44,12 @@ build = {
         ["error.message"] = "lib/message.lua",
         ["error.tostring"] = "lib/tostring.lua",
         ["error.type"] = "lib/type.lua",
-        ["error.check"] = "src/check.c",
+        ["error.check"] = {
+            sources = "src/check.c",
+            incdirs = {
+                "$(DEP_LAUXHLIB_INCDIR)",
+            },
+        },
         ["error.where"] = "src/where.c",
     },
     install = {
